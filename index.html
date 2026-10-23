@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CODENAME ENGINE // 拆解手册 —— 从能玩到能改的完整中文文档</title>
+<meta name="description" content="Codename Engine（FNF 引擎）中文使用与开发文档：界面与设置全解、目录结构、XML 逐行解剖、HScript / 着色器 / NDLL / 3D / 事件与打包的完整示例。纯静态、无广告、无评论区。">
+<meta name="author" content="一人制作">
+<meta name="theme-color" content="#06070b">
+<meta property="og:title" content="CODENAME ENGINE // 拆解手册">
+<meta property="og:description" content="从能玩到能改：Codename Engine 中文使用与外部脚本开发文档。">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/img/icon.png">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="is-gated">
+
+<!-- 顶部阅读进度（血条） -->
+<div class="healthbar" aria-hidden="true">
+  <div class="healthbar__fill" id="hbFill"></div>
+  <div class="healthbar__pin" id="hbPin" style="left:0"></div>
+</div>
+
+<!-- ============================ 顶栏 ============================ -->
+<header class="topbar">
+  <a class="brand" href="#top" aria-label="回到顶部">
+    <img src="assets/img/icon.png" alt="" width="30" height="30">
+    <span class="brand__txt">
+      <span class="brand__name">CODENAME // FIELD MANUAL</span>
+      <span class="brand__sub">CNE 拆解手册 · v1.1.0 · BUILD #1392</span>
+    </span>
+  </a>
+
+  <div class="topbar__spacer"></div>
+
+  <div class="modeswitch" role="group" aria-label="阅读模式切换">
+    <button class="modeswitch__btn" data-mode="simple" aria-pressed="false" title="通俗易懂，够上手（快捷键 1）">
+      简单<small>EASY</small>
+    </button>
+    <button class="modeswitch__btn" data-mode="normal" aria-pressed="true" title="默认档，讲清原理与做法（快捷键 2）">
+      普通<small>NORMAL</small>
+    </button>
+    <button class="modeswitch__btn" data-mode="detailed" aria-pressed="false" title="百科全书级，源码级细节（快捷键 3）">
+      详细<small>HARD</small>
+    </button>
+  </div>
+
+  <button class="iconbtn" id="btnSearch" title="搜索章节（Ctrl+K 或 /）" aria-label="搜索">⌕</button>
+  <button class="iconbtn" id="btnKeys" title="快捷键一览（?）" aria-label="快捷键">?</button>
+  <a class="topbar__wiki" href="https://codename-engine.com/wiki/" target="_blank" rel="noopener noreferrer">
+    <span>官方 Wiki</span> ↗
+  </a>
+</header>
+
+<!-- ============================ 主体骨架 ============================ -->
+<div class="shell" id="top">
+  <aside class="rail" id="rail" aria-label="章节导航"></aside>
+
+  <main class="main">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero__kicker">FRIDAY NIGHT FUNKIN' ENGINE · 中文技术文档</div>
+      <h1><span>引擎拆解手册</span></h1>
+      <div class="hero__en">Codename Engine / Usage &amp; Scripting Manual</div>
+      <p class="hero__lead">
+        这份文档只回答一件事：<b>拿到 Codename Engine 之后，从“能玩”到“能改”中间那段路怎么走。</b>
+        界面、设置、目录、XML 全部讲透，外部脚本（HScript / 着色器 / NDLL / 3D / 事件）给出能直接复制的完整示例。
+      </p>
+      <div class="chips">
+        <span class="chip chip--live"><b>Windows Builds #1392</b></span>
+        <span class="chip">版本 <b>1.1.0</b></span>
+        <span class="chip">API <b>v3</b></span>
+        <span class="chip">平台 <b>Win x64 / macOS / Linux x64</b></span>
+        <span class="chip">阅读模式 <b>三档</b></span>
+      </div>
+
+      <dl class="hero__grid">
+        <div class="hero__cell"><dt>本文档定位</dt><dd>上手指南 + 外部开发手册</dd></div>
+        <div class="hero__cell"><dt>是否需要改源码</dt><dd>不需要</dd></div>
+        <div class="hero__cell"><dt>附带示例</dt><dd>可一键复制</dd></div>
+        <div class="hero__cell"><dt>整理时间</dt><dd>2026-10-23</dd></div>
+      </dl>
+
+      <div class="hero__lanes" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </section>
+
+    <div id="sections"></div>
+
+    <noscript>
+      <div class="callout callout--warn" style="margin:24px 0">
+        <b>需要开启 JavaScript</b>
+        <span>本页的正文由浏览器端按「简单 / 普通 / 详细」三档动态拼装，关闭 JavaScript 后无法显示。纯文本版见同目录下的
+        <a href="CodenameEngine-使用与开发说明.txt">CodenameEngine-使用与开发说明.txt</a>。</span>
+      </div>
+    </noscript>
+
+    <!-- ============================ 页脚 ============================ -->
+    <footer class="footer">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <b>CODENAME ENGINE // 拆解手册</b>
+          <p>
+            非官方中文文档，面向想认真做模组的玩家与小团队。内容基于 <b>1.1.0 / Build #1392</b> 的源码与资源目录实读整理；
+            引擎仍在高速迭代，具体行为请以官方最新版本与官方 Wiki 为准。
+          </p>
+          <div class="footer__links">
+            <a href="https://codename-engine.com/wiki/" target="_blank" rel="noopener noreferrer">官方 Wiki（强烈建议先看这里）↗</a>
+            <a href="https://github.com/CodenameCrew/CodenameEngine/actions/runs/39722789627" target="_blank" rel="noopener noreferrer">本版本下载（GitHub Actions #1392）↗</a>
+            <a href="https://codename-engine.com/" target="_blank" rel="noopener noreferrer">官方网站 ↗</a>
+          </div>
+        </div>
+        <div class="footer__links">
+          <a href="#top">回到顶部 ↑</a>
+          <a href="#" id="footerKeys">快捷键一览</a>
+          <a href="#" id="footerTxt">纯文本版说明</a>
+        </div>
+      </div>
+      <div class="footer__note">
+        <span>制作人：一人制作</span>
+        <span>纯静态页面 · 无后端 · 无广告 · 无评论区</span>
+        <span>整理时间 2026-10-23 · 对应 Windows Builds #1392</span>
+      </div>
+    </footer>
+  </main>
+
+  <aside class="hud" id="hud" aria-label="阅读仪表"></aside>
+</div>
+
+<!-- ============================ 进入警告（默认可见） ============================ -->
+<div class="gate is-open" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate__panel">
+    <div class="gate__strip"></div>
+    <div class="gate__inner">
+      <div class="gate__flag">⚠ 阅 读 前 须 知</div>
+      <h2 id="gateTitle">先别急着往下翻</h2>
+      <div class="gate__sub">PLEASE READ BEFORE ENTERING</div>
+
+      <div class="gate__body">
+        <p class="gate__quote">本网页（或本版本）不保证对后续更新完全有效。</p>
+        <p>
+          Codename Engine 更新很快：接口会改名、目录会挪位、某些写法过一两个版本就失效。
+          本文档整理于 <strong>2026-10-23</strong>，对应的版本是 <strong>Windows Builds #1392（v1.1.0）</strong>；
+          如果你手上的引擎比这更新，请把本文当作“思路参考”，不要当作“绝对真理”。
+        </p>
+        <p>
+          <strong>你有更好的选择。</strong>官方 Wiki 才是唯一权威、随时更新、还带官方示例的地方。
+          我们这里只是把中文环境里最容易卡住的地方讲得更细一点 —— 能看官方，就先看官方。
+        </p>
+      </div>
+
+      <div class="gate__time">
+        <span>文档整理时间 <b>2026-10-23</b></span>
+        <span>对应版本 <b>Build #1392 / v1.1.0</b></span>
+        <span>制作 <b>一人制作</b></span>
+      </div>
+
+      <div class="gate__actions">
+        <a class="btn btn--primary" href="https://codename-engine.com/wiki/" target="_blank" rel="noopener noreferrer">
+          ↑ 点击进入官方 Wiki
+        </a>
+        <button class="btn btn--ghost" id="gateStay" type="button" autofocus>
+          ↓ 继续留在这里
+        </button>
+      </div>
+      <div class="gate__tiny">
+        本页不含广告、不含评论区、不收集任何信息。<br>
+        继续即表示你理解：文档可能滞后于引擎更新。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 搜索面板 ============================ -->
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="搜索章节">
+  <div class="palette__box">
+    <input class="palette__input" id="paletteInput" type="text" placeholder="搜索章节、关键词，例如：着色器 / XML / 评分 / pack" autocomplete="off" spellcheck="false">
+    <div class="palette__list" id="paletteList"></div>
+    <div class="palette__foot">
+      <span>↑↓ 选择</span><span>Enter 跳转</span><span>Esc 关闭</span><span>支持中文与英文关键词</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 快捷键面板 ============================ -->
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="快捷键">
+  <div class="sheet__panel">
+    <h3>快捷键 / Shortcuts</h3>
+    <div class="sheet__sub">本页可用键盘全程操作</div>
+    <div class="sheet__grid">
+      <div class="sheet__row"><span>切换阅读模式</span><span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></div>
+      <div class="sheet__row"><span>搜索章节</span><span><kbd>Ctrl</kbd>+<kbd>K</kbd> 或 <kbd>/</kbd></span></div>
+      <div class="sheet__row"><span>上一章 / 下一章</span><span><kbd>K</kbd> / <kbd>J</kbd></span></div>
+      <div class="sheet__row"><span>回到顶部</span><span><kbd>G</kbd> 然后 <kbd>T</kbd></span></div>
+      <div class="sheet__row"><span>打开本面板</span><span><kbd>?</kbd></span></div>
+      <div class="sheet__row"><span>复制代码</span><span>代码块右上角「复制」</span></div>
+      <div class="sheet__row"><span>XML 逐行讲解</span><span>点击 XML 任意一行</span></div>
+      <div class="sheet__row"><span>关闭弹层</span><span><kbd>Esc</kbd></span></div>
+    </div>
+    <button class="btn btn--ghost sheet__close" id="sheetClose" type="button">关闭</button>
+  </div>
+</div>
+
+<!-- 灯箱 -->
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <img id="lightboxImg" src="" alt="">
+  <p id="lightboxCap"></p>
+</div>
+
+<!--
+  手稿内部备注（仅源码可见，前端绝不渲染）：
+  - 拍摄视频前网页已公开：视频位先留空，页面在录制前就已经通过 GitHub Pages 上线。
+  - 演示视频素材后续自行补录，放到 assets/video/demo.mp4 即可自动出现。
+  - 本页不含任何评论/留言模块，避免争议。
+-->
+
+<script src="assets/js/app.js"></script>
+<script src="assets/js/content-1.js"></script>
+<script src="assets/js/content-2.js"></script>
+<script src="assets/js/content-3.js"></script>
+<script src="assets/js/content-4.js"></script>
+<script src="assets/js/content-5.js"></script>
+<script src="assets/js/content-6.js"></script>
+</body>
+</html>

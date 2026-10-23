@@ -13,9 +13,8 @@
 
 ![预览](assets/img/thumbnail.png)
 
-> **在线预览**：`https://<你的用户名>.github.io/codename-engine-manual/`
-> **仓库地址**：`https://github.com/<你的用户名>/codename-engine-manual`
-> 部署后把这两处的 `<你的用户名>` 换成你的 GitHub 用户名即可。
+> **在线预览**：`https://zeelingAQ.github.io/codename-engine-manual/`
+> **仓库地址**：`https://github.com/zeelingAQ/codename-engine-manual`
 
 ### 它解决什么问题
 
@@ -25,7 +24,7 @@
 ### 亮点
 
 - **三档阅读**：简单（够上手）／普通（讲原理）／详细（百科全书），随切随看，位置不丢。
-- **138 段可复制代码**：全部放在 `<pre><code>` 里转义展示，右上角一键复制。
+- **155 段可复制代码**：全部放在 `<pre><code>` 里转义展示，右上角一键复制。
 - **XML 逐行解剖器**：点任意一行，下面告诉你这一行在干什么。
 - **按源码抽的全表**：PlayState 字段、回调、事件对象、195 个 Flags、编辑器 109 条菜单快捷键……
 - **纯静态**：无框架、无 CDN、无统计、无评论区；整个目录丢进 GitHub Pages 就能跑。
@@ -91,7 +90,7 @@
 2. 把本目录**所有文件**上传到仓库根目录（拖拽上传即可，注意 `index.html` 必须在根目录）。
 3. 打开仓库 → **Settings** → 左侧 **Pages**。
 4. **Source** 选 `Deploy from a branch`，**Branch** 选 `main`、目录选 `/ (root)`，点 **Save**。
-5. 等 1～2 分钟，页面顶部会出现网址：`https://<你的用户名>.github.io/codename-engine-manual/`。
+5. 等 1～2 分钟，页面顶部会出现网址：`https://zeelingAQ.github.io/codename-engine-manual/`。
 6. 打开它，把网址发给别人，任何人都能看（Public 仓库 + Pages 默认公开）。
 
 ### 方式 B：命令行
@@ -101,7 +100,7 @@ git init
 git add .
 git commit -m "docs: Codename Engine 中文拆解手册（Build #1392）"
 git branch -M main
-git remote add origin https://github.com/<你的用户名>/codename-engine-manual.git
+git remote add origin https://github.com/zeelingAQ/codename-engine-manual.git
 git push -u origin main
 ```
 

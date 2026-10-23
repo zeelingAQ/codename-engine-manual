@@ -763,7 +763,7 @@
         tags: ['PlayState', '评分', '隐藏', '切换状态'],
         simple: [
           { p: "外部脚本最大的用处，是把引擎**已有**的功能拿来用：隐藏血条、改分数、直接跳进某首歌、让角色播某个动画。" },
-          { p: "下面每一段都能直接粘进 `songs/<歌>/scripts/xxx.hx` 里跑。" }
+          { p: "这一节讲「从外部能改什么」。**普通档里每一段都是完整代码**，可以直接粘进 `songs/<歌>/scripts/xxx.hx` 跑；这里先讲清楚有哪些能改。" }
         ],
         core: [
           { h: '隐藏界面元素' },
@@ -978,7 +978,45 @@
               ]
             }
           },
-          { p: "经验法则：**能做成事件的就做成事件** —— 因为改起来不用碰代码，团队里不会写代码的人也能调。" }
+          { p: "经验法则：**能做成事件的就做成事件** —— 因为改起来不用碰代码，团队里不会写代码的人也能调。" },
+          { h: '自定义事件的 JSON：`data/events/<名字>.json`' },
+          { p: "引擎自带的 14 个事件是写死在 `EventsData.defaultEventsParams` 里的。你自己的事件用 JSON 定义 —— **一个事件一个文件**，文件名就是事件名。" },
+          { code: { lang: 'json', title: 'data/events/My Event.json', src: '{\n\t"params": [\n\t\t{\n\t\t\t"name": "目标轨道",\n\t\t\t"type": "Int(0, 3)",\n\t\t\t"defaultValue": 0\n\t\t},\n\t\t{\n\t\t\t"name": "强度",\n\t\t\t"type": "Float(0, 2, 0.1, 2)",\n\t\t\t"defaultValue": 1\n\t\t},\n\t\t{\n\t\t\t"name": "是否循环",\n\t\t\t"type": "Bool",\n\t\t\t"defaultValue": false\n\t\t}\n\t]\n}' } },
+          {
+            table: {
+              head: ['字段', '说明'],
+              rows: [
+                ['`params`', '参数数组，**顺序就是谱面里 `params[]` 的顺序**'],
+                ['`params[].name`', '编辑器里显示的名字（可以写中文）'],
+                ['`params[].type`', '**一段 HScript 表达式字符串**（见下表）'],
+                ['`params[].defaultValue`', '默认值'],
+                ['`params[].saveIfDefault`', '等于默认值时是否还写进谱面（`false` 能让谱面文件更干净）']
+              ]
+            }
+          },
+          { p: "`type` 不是枚举，是**表达式**。引擎会用一个只暴露这几个构造器的 HScript 解释器去求值：" },
+          {
+            table: {
+              head: ['写什么', '得到什么', '参数'],
+              rows: [
+                ['`Bool`', '开关', '—'],
+                ['`Int(min, max, step)`', '整数', '都可省略'],
+                ['`Float(min, max, step, precision)`', '小数', '都可省略'],
+                ['`String`', '文本框', '—'],
+                ['`DropDown("A", "B", "C")`', '下拉框', '任意个值'],
+                ['`ColorWheel`', '取色器', '—'],
+                ['`StrumLine`', '选一条轨道', '—'],
+                ['`Character`', '选一个角色', '—'],
+                ['`Stage`', '选一个舞台', '—']
+              ]
+            }
+          },
+          { callout: { kind: 'tip', title: '精简写法', text: "`Int` / `Float` 不传参数就是「不限范围」，比如 `\"type\": \"Float\"` 就是一个任意小数。" } },
+
+          { h: '`.pack` 格式：把名字和内容塞进一个文件' },
+          { p: "除了 `.json`，`data/events/` 还认 `.pack`。它用固定分隔符把「事件名」和「JSON 内容」拼在一起，方便你在不能建文件名的环境里传事件：" },
+          { code: { lang: 'ini', title: '结构', src: '事件名________PACKSEP________（占位，忽略）________PACKSEP________{"params":[...]}' } },
+          { p: "实际用不到就别碰，`.json` 更直观。**改完事件定义要重进一次歌曲/编辑器**（引擎在 `reloadEvents()` 里只读一次）。" },
         ]
       },
 
@@ -1070,7 +1108,7 @@
               "**一句话选型**：想做完整作品、愿意花时间学结构 → 选它；只想十分钟换个皮 → 用 Psych 更省事。"
             ]
           },
-          { callout: { kind: 'info', title: '提醒', text: "下面每一节都是同一件事的两面。先看「适合谁 / 不适合谁」，比看十条优缺点更快。" } }
+          { callout: { kind: 'info', title: '提醒', text: "这一节的两面都会讲到：**能做什么**、**卡在哪**。想快速判断「这引擎适不适合我」，去普通档看那张评分表和「适合谁 / 不适合谁」。" } }
         ],
         core: [
           { h: '① 做得好的地方（逐条讲清为什么）' },

@@ -67,6 +67,27 @@
             }
           },
 
+          { h4: '完整目录树（按本仓库实际统计，括号内是文件数）' },
+          { p: "上面是「人话版」，下面是**照着仓库跑出来的全量**。找不到某个文件该放哪时，直接在这张树上对照。" },
+          { code: { lang: 'ini', title: 'assets/ 全量目录树', src: 'assets/\n├─ data/                      (103)\n│  ├─ alphabet/                  (2)\n│  ├─ characters/                (29)\n│  ├─ config/                    (3)\n│  ├─ dialogue/                  (12)\n│  ├─ editors/                   (7)\n│  ├─ notes/                     (2)\n│  ├─ scripts/                   (3)\n│  ├─ splashes/                  (4)\n│  ├─ stages/                    (16)\n│  ├─ states/                    (1)\n│  ├─ titlescreen/               (2)\n│  └─ weeks/                     (19)\n├─ fonts/                     (4)\n├─ images/                    (427)\n│  ├─ characters/                (59)\n│  ├─ credits/                   (1)\n│  ├─ dialogue/                  (16)\n│  ├─ editors/                   (110)\n│  ├─ game/                      (42)\n│  ├─ icons/                     (19)\n│  ├─ menus/                     (73)\n│  └─ stages/                    (103)\n├─ languages/                 (71)\n│  ├─ en/                        (5)\n│  ├─ es/                        (19)\n│  ├─ it/                        (15)\n│  ├─ pl/                        (26)\n│  └─ pt/                        (5)\n├─ music/                     (18)\n│  └─ pixel/                     (8)\n├─ shaders/                   (16)\n│  └─ engine/                    (10)\n├─ songs/                     (206)\n│  └─ （23 首歌，每首一个文件夹：charts/ meta.json song/ scripts/）\n├─ sounds/                    (184)\n│  ├─ cutscenes/                 (14)\n│  ├─ dialogue/                  (14)\n│  ├─ editors/                   (34)\n│  ├─ jeffGameover/              (50)\n│  ├─ menu/                      (8)\n│  └─ pixel/                     (22)\n└─ videos/                    (1)' } },
+
+          { h4: '上面表里没细说的几处' },
+          {
+            kv: [
+              ['`data/config/` 只有 3 个文件', '`discord.json`、`freeplaySonglist.txt`、`menuItems.txt`。**`flags.ini` 和 `modpack.ini` 默认不存在** —— 需要改配置时自己新建（见第 42 节）'],
+              ['`data/events/` 默认不存在', '加自定义事件时才建，放 `events.json`（见第 24 节）'],
+              ['`data/config/options.xml`', 'mod 自定义设置项，**不是目录**，是 mod 里的一个文件（见第 39 节）'],
+              ['`data/config/controls.xml`', 'mod 自定义按键分类（见第 40 节）'],
+              ['`data/dialogue/boxes/*.hx`', '对话框脚本 —— 对话框也能挂脚本，和 `boxes/*.xml` 同名'],
+              ['`languages/<代码>/assets/`', '**本地化图片**：主菜单按钮是图不是字，所以翻译要连带换图（`es` `it` `pl` 有，`en` `pt` 没有）'],
+              ['`sounds/cutscenes/`', '过场音效；`sounds/dialogue/` 是打字/翻页音'],
+              ['`sounds/jeffGameover/`', '游戏结束（Jeff）相关音效，共 50 个'],
+              ['`sounds/pixel/` 与 `music/pixel/`', '像素模式（Week 6）专用的音效与音乐'],
+              ['`shaders/engine/`', '引擎自用着色器（血条、灰化、过渡等），别乱改'],
+              ['`images/editors/` 有 110 个文件', '四套编辑器共用的 UI 素材，是全仓库第二大的图片目录']
+            ]
+          },
+
           { h: '`assets/data/` 详解（最核心的一层）' },
           {
             table: {
@@ -77,13 +98,13 @@
                 ['`weeks/`', '`weeks/`（周定义 XML）、`characters/`（周展示角色）、`weeks.txt`（排序）'],
                 ['`notes/`', '音符类型脚本（`Alt Anim Note.hx` 这种）'],
                 ['`scripts/`', '通用脚本（`pixel.hx`、`week6-pause.hx`…），也可被歌曲引用'],
-                ['`states/`', '软编码状态脚本：给任意 State 挂脚本，比如 `StageEditor.hx`'],
-                ['`events/`', '自定义事件的 JSON 定义（**你自己加事件就放这**）'],
+                ['`states/`', '软编码状态脚本：给任意 State 挂脚本（基础游戏里只有 `StageEditor.hx`）'],
+                ['`events/`', '自定义事件的 JSON 定义（**默认不存在**，加事件时才建）'],
                 ['`splashes/`', '音符溅射（打击特效）配置 XML'],
                 ['`titlescreen/`', '标题界面配置 XML + 随机吐槽文本'],
-                ['`dialogue/`', '对话框 `boxes/` 与立绘 `characters/` 的 XML'],
+                ['`dialogue/`', '对话框 `boxes/`（XML + 可选 `.hx`）与立绘 `characters/`'],
                 ['`alphabet/`', '字体拼字配置（`normal.xml`、`bold.xml`）'],
-                ['`config/`', '**运行时配置**：`menuItems.txt`、`freeplaySonglist.txt`、`discord.json`、`flags.ini`、`modpack.ini`（mod 里）'],
+                ['`config/`', '**运行时配置**：`menuItems.txt`、`freeplaySonglist.txt`、`discord.json`；`flags.ini` / `modpack.ini` 默认不存在'],
                 ['`editors/`', '编辑器界面布局（`layouts/stage/*.xml`）'],
                 ['`alphabet.xml`', '根目录的这份是默认字体配置'],
                 ['`discord.hx`', 'Discord 状态脚本（改显示内容就改它）'],
@@ -295,7 +316,7 @@
                 ['`data/config/freeplaySonglist.txt`', '自由游玩歌单', '一行一首，空行=间隔'],
                 ['`data/weeks/weeks.txt`', '周的排序', '一行一个文件名'],
                 ['`data/config/discord.json`', 'Discord RPC 的 clientID 与图标 key', 'JSON'],
-                ['`data/config/flags.ini`', '引擎级开关', 'INI'],
+                ['`data/config/flags.ini`', '引擎级开关（**默认不存在，需要时自己建**）', 'INI'],
                 ['`data/config/modpack.ini`', 'mod 元数据 + Flags + 状态重定向', 'INI'],
                 ['`assets/languages/<代码>/`', '语言包', '`config.ini` + 4 个 XML']
               ]
@@ -360,7 +381,38 @@
           },
           { h: '资源优先级' },
           { p: "同一个路径存在多份时，优先级大致是：**mod（当前选中的）> addon > 语言包 > 官方 assets**。同名即覆盖，没有「合并」的概念 —— 一个 XML 被覆盖就是整份被替换，不会逐节点合并。" },
-          { p: "所以想「在原版基础上加一点」，正确做法是把原版文件**复制过来再改**，而不是只写你要加的那一行。" }
+          { p: "所以想「在原版基础上加一点」，正确做法是把原版文件**复制过来再改**，而不是只写你要加的那一行。" },
+          { h: 'Animate 图集（`.json` + `spritemap`）' },
+          { p: "除了 Sparrow（一张 PNG + 一个 XML），人物还支持 **Animate Atlas**（Flash/Animate 导出）。区别是帧不是按坐标切，而是按**帧标签**取。" },
+          { code: { lang: 'ini', title: 'Animate 图集的目录长什么样', src: 'images/characters/bf-animate/\n├─ Animation.json        ← 帧数据（符号 / 图层 / 帧标签 / 时长）\n├─ spritemap1.png        ← 图集\n├─ spritemap1.json       ← 图集坐标（引擎会用）\n└─ TextureAtlas/\n   └─ spritemap1/\n      └─ ...              ← 部分导出工具会带这个目录' } },
+          {
+            kv: [
+              ['根节点怎么写', '`<character sprite="characters/bf-animate" swfMode="true">`'],
+              ['`<anim>` 怎么写', '`<anim name="idle" anim="BF Idle" label="true" isAnimate="true" />`'],
+              ['`anim` 填什么', '**帧标签名**（不是前缀）'],
+              ['`label="true"`', '按标签匹配；不写就按前缀匹配，Animate 图集里通常匹配不到'],
+              ['`isAnimate="true"`', '按 Animate 图集解析这一条动画'],
+              ['`swfMode`', '兼容旧版 Animate 导出的坐标模式']
+            ]
+          },
+          { callout: { kind: 'warn', title: 'Animate 人物的两个默认差异', text: "① 引擎对 Animate 人物**默认关闭 `centercam`**（因为它的包围盒不可靠）。② `filterQuality` 建议 `high`，否则缩小时糊。" } },
+          { p: "导出建议：Animate 里把每一段动画做成**独立的时间轴/符号**，帧标签名起成人能读的（`BF Idle`、`BF Sing LEFT`），这样 XML 里直接写标签名就行。" },
+
+          { h: '音符溅射（Splash）也能脚本化' },
+          { p: "`data/splashes/*.xml` 只定义「长什么样」，真正「什么时候播、播在哪」是 `SplashHandler` 管的。它会在播放前后发事件，你可以拦。" },
+          {
+            table: {
+              head: ['API', '用途'],
+              rows: [
+                ['`SplashHandler.showSplash(name, strum)`', '在某个箭头上播一个溅射'],
+                ['`getSplashGroup(name)`', '取（或加载）一组溅射配置，`name` 对应 `data/splashes/<name>.xml`'],
+                ['`SplashShowEvent`', '播溅射前后触发，可读 `name` / `splash` / `strum` / `group`'],
+                ['`Splash.strum` / `Splash.strumID`', '这个溅射挂在哪条箭头 / 哪一轨'],
+                ['`Splash.copyFrom(source)`', '复制一份现成配置']
+              ]
+            }
+          },
+          { code: { lang: 'haxe', title: '用事件拦下溅射，改成自己的动画', src: 'import funkin.backend.scripting.events.splash.SplashShowEvent;\n\nfunction onSplashShow(e:SplashShowEvent) {\n\t// 只处理玩家这一侧的\n\tif (e.strum != null && e.strum.__strumLine != null) {\n\t\t// 比如：把溅射放大一点\n\t\te.splash.scale.set(1.2, 1.2);\n\t\te.splash.updateHitbox();\n\t}\n}\n\n// 也可以主动播一个\nfunction playCustom(strum) {\n\tif (PlayState.instance != null)\n\t\tPlayState.instance.splashHandler.showSplash("default", strum);\n}' } }
         ]
       },
 
@@ -373,7 +425,9 @@
         tags: ['XML', '舞台', '人物', '周', '属性表'],
         simple: [
           { p: "Codename 里几乎所有「配置」都是 XML。它的规律很朴素：**一个根节点 + 一堆子节点 + 属性写在尖括号里**。" },
-          { p: "下面每个例子都可以**点某一行**，下方会告诉你这一行在干嘛。先点两下试试。" }
+          { p: "这一节的完整版（**普通 / 详细**档）里有「点一行、讲一行」的解剖器。这里先给你一个最小的舞台 XML，感受一下结构：" },
+          { code: { lang: 'xml', title: '最小的舞台 XML', src: '<stage zoom="0.9">\n\t<!-- 背景图 -->\n\t<sprite name="bg" sprite="bg" x="0" y="0" />\n\n\t<!-- 三个角色站位 -->\n\t<girlfriend x="300" y="120" />\n\t<dad x="620" y="140" />\n\t<boyfriend x="900" y="150" />\n</stage>' } },
+          { p: "看出来了吗？**每个尖括号就是一个东西**，`name` / `x` / `y` 是它的属性。整份 XML 就是「摆什么东西、放在哪」。下面按类型拆。" }
         ],
         core: [
           { h: '通用规则' },
@@ -539,6 +593,35 @@
               ]
             }
           },
+
+          { h: '②-b `<spritesheet>`：一个人物用多张图集' },
+          { p: "人物默认只加载一张图集：`sprite` 属性指定的那个（不写就等于文件名）。但你可以用 `<spritesheet>` **再挂任意多张**，引擎会把它们**合并成一套帧**，动画就能跨图集取帧。" },
+          { code: { lang: 'xml', title: 'data/characters/bf.xml（多图集示例）', src: '<character sprite="characters/bf" x="0" y="0" icon="bf">\n\n\t<!-- 额外图集：死亡精灵、旧版贴图、特殊表情…… -->\n\t<spritesheet path="characters/bf-death" />\n\t<spritesheet path="characters/bf-old" />\n\n\t<anim name="idle" anim="BF idle dance" fps="24" loop="true" />\n\n\t<!-- 这一帧来自 bf-death 图集 -->\n\t<anim name="firstDeath" anim="BF Dies" fps="24" />\n</character>' } },
+          {
+            table: {
+              head: ['写法', '说明'],
+              rows: [
+                ['`<spritesheet path="characters/bf-death" />`', '**推荐**：`path` 属性，路径相对 `images/`，不带扩展名'],
+                ['`<spritesheet>characters/bf-death</spritesheet>`', '等价：把路径写在节点文本里'],
+                ['`<sheet ... />`', '`sheet` 是 `spritesheet` 的别名，两种都能用'],
+                ['（不写任何 `<spritesheet>`）', '只用 `sprite` 指定的那一张']
+              ]
+            }
+          },
+          {
+            kv: [
+              ['合并在哪', '`XMLUtil.appendSpriteSheetsFromXML()` → `Paths.getMultiFrames()`'],
+              ['默认那张还在吗', '**在**。`sprite` 指定的图集永远排第一个，`<spritesheet>` 是往后追加'],
+              ['顺序有关系吗', '有。**先加载的图集优先** —— 两张图集都有 `BF idle` 前缀时，用前面的'],
+              ['路径有什么要求', '`path` 相对 `images/`，不带 `.png` / `.xml`；引擎会自动找同名的图 + 图集'],
+              ['找不到会怎样', '跳过这张图集并打一条 `Could not find a BitmapData asset` 警告，**不会崩**'],
+              ['重复写会怎样', '同一路径写两次只加载一次，并打一条 `was already added` 警告']
+            ]
+          },
+          { p: "舞台 XML 里的 `<sprite>` 节点**同样支持** `<spritesheet>`，用法完全一样 —— 一个舞台元素也可以由多张图集拼出来。" },
+          { code: { lang: 'xml', title: '舞台元素用多图集', src: '<stage folder="stages/my-stage/">\n\t<sprite name="crowd" sprite="crowd">\n\t\t<spritesheet path="stages/my-stage/crowd-night" />\n\t\t<anim name="idle" anim="crowd idle" fps="12" loop="true" />\n\t</sprite>\n</stage>' } },
+          { callout: { kind: 'tip', title: '什么时候该用', text: "三种典型场景：① 人物后期加了新动画但不想重做整张图集；② 死亡/复活精灵是单独一套；③ 同一个角色有多种画风（白天/夜晚、旧版/新版）。" } },
+          { callout: { kind: 'warn', title: '最常见的错', text: "把 `<spritesheet>` 写在了 `<character>` 外面（比如写进某个 `<anim>` 里）。它必须是**根节点的直接子节点**，和 `<anim>` 平级。" } },
 
           { h: '③ 周 XML' },
           { xml: {

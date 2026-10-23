@@ -99,7 +99,10 @@
 　　44　日志、崩溃与排查流程（LOGS & CRASHES）
 　　45　性能优化：让你的 mod 不掉帧（PERFORMANCE）
 　　46　报错速查：日志说什么 = 你哪里错了（ERROR LOOKUP）
-　　47　附录：快捷键、术语与链接（APPENDIX）
+　　47　编译开关：为什么别人的构建有这个功能，你的没有（BUILD DEFINES）
+　　48　多 mod 共存：谁覆盖谁与 LIB_ 机制（MULTI-MOD）
+　　49　Discord 状态：改「正在玩什么」（DISCORD RPC）
+　　50　附录：快捷键、术语与链接（APPENDIX）
 
 
 
@@ -1588,6 +1591,85 @@
       · languages/ ｜ 语言包（en es it pl pt），含翻译 XML 与本地化图片
       · videos/ ｜ 视频过场（.mp4 等）
 
+  ● 完整目录树（按本仓库实际统计，括号内是文件数）
+
+    上面是「人话版」，下面是照着仓库跑出来的全量。找不到某个文件该放哪时，直接
+    在这张树上对照。
+
+  ┌─ 代码：assets/ 全量目录树 ［ini］
+  │ assets/
+  │ ├─ data/                      (103)
+  │ │  ├─ alphabet/                  (2)
+  │ │  ├─ characters/                (29)
+  │ │  ├─ config/                    (3)
+  │ │  ├─ dialogue/                  (12)
+  │ │  ├─ editors/                   (7)
+  │ │  ├─ notes/                     (2)
+  │ │  ├─ scripts/                   (3)
+  │ │  ├─ splashes/                  (4)
+  │ │  ├─ stages/                    (16)
+  │ │  ├─ states/                    (1)
+  │ │  ├─ titlescreen/               (2)
+  │ │  └─ weeks/                     (19)
+  │ ├─ fonts/                     (4)
+  │ ├─ images/                    (427)
+  │ │  ├─ characters/                (59)
+  │ │  ├─ credits/                   (1)
+  │ │  ├─ dialogue/                  (16)
+  │ │  ├─ editors/                   (110)
+  │ │  ├─ game/                      (42)
+  │ │  ├─ icons/                     (19)
+  │ │  ├─ menus/                     (73)
+  │ │  └─ stages/                    (103)
+  │ ├─ languages/                 (71)
+  │ │  ├─ en/                        (5)
+  │ │  ├─ es/                        (19)
+  │ │  ├─ it/                        (15)
+  │ │  ├─ pl/                        (26)
+  │ │  └─ pt/                        (5)
+  │ ├─ music/                     (18)
+  │ │  └─ pixel/                     (8)
+  │ ├─ shaders/                   (16)
+  │ │  └─ engine/                    (10)
+  │ ├─ songs/                     (206)
+  │ │  └─ （23 首歌，每首一个文件夹：charts/ meta.json song/ scripts/）
+  │ ├─ sounds/                    (184)
+  │ │  ├─ cutscenes/                 (14)
+  │ │  ├─ dialogue/                  (14)
+  │ │  ├─ editors/                   (34)
+  │ │  ├─ jeffGameover/              (50)
+  │ │  ├─ menu/                      (8)
+  │ │  └─ pixel/                     (22)
+  │ └─ videos/                    (1)
+  └─ 代码结束
+
+  ● 上面表里没细说的几处
+
+      ▸ data/config/ 只有 3 个文件
+          discord.json、freeplaySonglist.txt、menuItems.txt。flags.ini 和
+          modpack.ini 默认不存在 —— 需要改配置时自己新建（见第 42 节）
+      ▸ data/events/ 默认不存在
+          加自定义事件时才建，放 events.json（见第 24 节）
+      ▸ data/config/options.xml
+          mod 自定义设置项，不是目录，是 mod 里的一个文件（见第 39 节）
+      ▸ data/config/controls.xml
+          mod 自定义按键分类（见第 40 节）
+      ▸ data/dialogue/boxes/*.hx
+          对话框脚本 —— 对话框也能挂脚本，和 boxes/*.xml 同名
+      ▸ languages/<代码>/assets/
+          本地化图片：主菜单按钮是图不是字，所以翻译要连带换图（es it pl 有，en pt
+          没有）
+      ▸ sounds/cutscenes/
+          过场音效；sounds/dialogue/ 是打字/翻页音
+      ▸ sounds/jeffGameover/
+          游戏结束（Jeff）相关音效，共 50 个
+      ▸ sounds/pixel/ 与 music/pixel/
+          像素模式（Week 6）专用的音效与音乐
+      ▸ shaders/engine/
+          引擎自用着色器（血条、灰化、过渡等），别乱改
+      ▸ images/editors/ 有 110 个文件
+          四套编辑器共用的 UI 素材，是全仓库第二大的图片目录
+
 
   ■ assets/data/ 详解（最核心的一层）
   ─────────────────────────────────
@@ -1599,14 +1681,15 @@
         序）
       · notes/ ｜ 音符类型脚本（Alt Anim Note.hx 这种）
       · scripts/ ｜ 通用脚本（pixel.hx、week6-pause.hx…），也可被歌曲引用
-      · states/ ｜ 软编码状态脚本：给任意 State 挂脚本，比如 StageEditor.hx
-      · events/ ｜ 自定义事件的 JSON 定义（你自己加事件就放这）
+      · states/ ｜ 软编码状态脚本：给任意 State 挂脚本（基础游戏里只有
+        StageEditor.hx）
+      · events/ ｜ 自定义事件的 JSON 定义（默认不存在，加事件时才建）
       · splashes/ ｜ 音符溅射（打击特效）配置 XML
       · titlescreen/ ｜ 标题界面配置 XML + 随机吐槽文本
-      · dialogue/ ｜ 对话框 boxes/ 与立绘 characters/ 的 XML
+      · dialogue/ ｜ 对话框 boxes/（XML + 可选 .hx）与立绘 characters/
       · alphabet/ ｜ 字体拼字配置（normal.xml、bold.xml）
-      · config/ ｜ 运行时配置：menuItems.txt、freeplaySonglist.txt、discord.json、
-        flags.ini、modpack.ini（mod 里）
+      · config/ ｜ 运行时配置：menuItems.txt、freeplaySonglist.txt、discord.json；
+        flags.ini / modpack.ini 默认不存在
       · editors/ ｜ 编辑器界面布局（layouts/stage/*.xml）
       · alphabet.xml ｜ 根目录的这份是默认字体配置
       · discord.hx ｜ Discord 状态脚本（改显示内容就改它）
@@ -1900,7 +1983,7 @@
       · data/config/freeplaySonglist.txt ｜ 自由游玩歌单 ｜ 一行一首，空行=间隔
       · data/weeks/weeks.txt ｜ 周的排序 ｜ 一行一个文件名
       · data/config/discord.json ｜ Discord RPC 的 clientID 与图标 key ｜ JSON
-      · data/config/flags.ini ｜ 引擎级开关 ｜ INI
+      · data/config/flags.ini ｜ 引擎级开关（默认不存在，需要时自己建） ｜ INI
       · data/config/modpack.ini ｜ mod 元数据 + Flags + 状态重定向 ｜ INI
       · assets/languages/<代码>/ ｜ 语言包 ｜ config.ini + 4 个 XML
 
@@ -2030,6 +2113,77 @@
 
     所以想「在原版基础上加一点」，正确做法是把原版文件复制过来再改，而不是只写
     你要加的那一行。
+
+
+  ■ Animate 图集（.json + spritemap）
+  ─────────────────────────────────
+
+    除了 Sparrow（一张 PNG + 一个 XML），人物还支持 Animate Atlas（
+    Flash/Animate 导出）。区别是帧不是按坐标切，而是按帧标签取。
+
+  ┌─ 代码：Animate 图集的目录长什么样 ［ini］
+  │ images/characters/bf-animate/
+  │ ├─ Animation.json        ← 帧数据（符号 / 图层 / 帧标签 / 时长）
+  │ ├─ spritemap1.png        ← 图集
+  │ ├─ spritemap1.json       ← 图集坐标（引擎会用）
+  │ └─ TextureAtlas/
+  │    └─ spritemap1/
+  │       └─ ...              ← 部分导出工具会带这个目录
+  └─ 代码结束
+
+      ▸ 根节点怎么写
+          <character sprite="characters/bf-animate" swfMode="true">
+      ▸ <anim> 怎么写
+          <anim name="idle" anim="BF Idle" label="true" isAnimate="true" />
+      ▸ anim 填什么
+          帧标签名（不是前缀）
+      ▸ label="true"
+          按标签匹配；不写就按前缀匹配，Animate 图集里通常匹配不到
+      ▸ isAnimate="true"
+          按 Animate 图集解析这一条动画
+      ▸ swfMode
+          兼容旧版 Animate 导出的坐标模式
+
+    【注意：Animate 人物的两个默认差异】
+      ① 引擎对 Animate 人物默认关闭 centercam（因为它的包围盒不可靠）。②
+      filterQuality 建议 high，否则缩小时糊。
+
+    导出建议：Animate 里把每一段动画做成独立的时间轴/符号，帧标签名起成人能读
+    的（BF Idle、BF Sing LEFT），这样 XML 里直接写标签名就行。
+
+
+  ■ 音符溅射（Splash）也能脚本化
+  ────────────────────────────
+
+    data/splashes/*.xml 只定义「长什么样」，真正「什么时候播、播在哪」是
+    SplashHandler 管的。它会在播放前后发事件，你可以拦。
+
+    ［API ｜ 用途］
+      · SplashHandler.showSplash(name, strum) ｜ 在某个箭头上播一个溅射
+      · getSplashGroup(name) ｜ 取（或加载）一组溅射配置，name 对应
+        data/splashes/<name>.xml
+      · SplashShowEvent ｜ 播溅射前后触发，可读 name / splash / strum / group
+      · Splash.strum / Splash.strumID ｜ 这个溅射挂在哪条箭头 / 哪一轨
+      · Splash.copyFrom(source) ｜ 复制一份现成配置
+
+  ┌─ 代码：用事件拦下溅射，改成自己的动画 ［haxe］
+  │ import funkin.backend.scripting.events.splash.SplashShowEvent;
+  │ 
+  │ function onSplashShow(e:SplashShowEvent) {
+  │ 	// 只处理玩家这一侧的
+  │ 	if (e.strum != null && e.strum.__strumLine != null) {
+  │ 		// 比如：把溅射放大一点
+  │ 		e.splash.scale.set(1.2, 1.2);
+  │ 		e.splash.updateHitbox();
+  │ 	}
+  │ }
+  │ 
+  │ // 也可以主动播一个
+  │ function playCustom(strum) {
+  │ 	if (PlayState.instance != null)
+  │ 		PlayState.instance.splashHandler.showSplash("default", strum);
+  │ }
+  └─ 代码结束
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -2239,6 +2393,69 @@
       · label ｜ true 时按「帧标签」而不是前缀匹配（Animate）
       · isAnimate ｜ true 时按 Animate 图集解析
       · type ｜ none/beat/loop
+
+
+  ■ ②-b <spritesheet>：一个人物用多张图集
+  ─────────────────────────────────────
+
+    人物默认只加载一张图集：sprite 属性指定的那个（不写就等于文件名）。但你可
+    以用 <spritesheet> 再挂任意多张，引擎会把它们合并成一套帧，动画就能跨图集
+    取帧。
+
+  ┌─ 代码：data/characters/bf.xml（多图集示例） ［xml］
+  │ <character sprite="characters/bf" x="0" y="0" icon="bf">
+  │ 
+  │ 	<!-- 额外图集：死亡精灵、旧版贴图、特殊表情…… -->
+  │ 	<spritesheet path="characters/bf-death" />
+  │ 	<spritesheet path="characters/bf-old" />
+  │ 
+  │ 	<anim name="idle" anim="BF idle dance" fps="24" loop="true" />
+  │ 
+  │ 	<!-- 这一帧来自 bf-death 图集 -->
+  │ 	<anim name="firstDeath" anim="BF Dies" fps="24" />
+  │ </character>
+  └─ 代码结束
+
+    ［写法 ｜ 说明］
+      · <spritesheet path="characters/bf-death" /> ｜ 推荐：path 属性，路径相对
+        images/，不带扩展名
+      · <spritesheet>characters/bf-death</spritesheet> ｜ 等价：把路径写在节点文
+        本里
+      · <sheet ... /> ｜ sheet 是 spritesheet 的别名，两种都能用
+      · （不写任何 <spritesheet>） ｜ 只用 sprite 指定的那一张
+
+      ▸ 合并在哪
+          XMLUtil.appendSpriteSheetsFromXML() → Paths.getMultiFrames()
+      ▸ 默认那张还在吗
+          在。sprite 指定的图集永远排第一个，<spritesheet> 是往后追加
+      ▸ 顺序有关系吗
+          有。先加载的图集优先 —— 两张图集都有 BF idle 前缀时，用前面的
+      ▸ 路径有什么要求
+          path 相对 images/，不带 .png / .xml；引擎会自动找同名的图 + 图集
+      ▸ 找不到会怎样
+          跳过这张图集并打一条 Could not find a BitmapData asset 警告，不会崩
+      ▸ 重复写会怎样
+          同一路径写两次只加载一次，并打一条 was already added 警告
+
+    舞台 XML 里的 <sprite> 节点同样支持 <spritesheet>，用法完全一样 —— 一个舞
+    台元素也可以由多张图集拼出来。
+
+  ┌─ 代码：舞台元素用多图集 ［xml］
+  │ <stage folder="stages/my-stage/">
+  │ 	<sprite name="crowd" sprite="crowd">
+  │ 		<spritesheet path="stages/my-stage/crowd-night" />
+  │ 		<anim name="idle" anim="crowd idle" fps="12" loop="true" />
+  │ 	</sprite>
+  │ </stage>
+  └─ 代码结束
+
+    【建议：什么时候该用】
+      三种典型场景：① 人物后期加了新动画但不想重做整张图集；② 死亡/复活精灵是单
+      独一套；③ 同一个角色有多种画风（白天/夜晚、旧版/新版）。
+
+    【注意：最常见的错】
+      把 <spritesheet> 写在了 <character> 外面（比如写进某个 <anim> 里）。它必须
+      是根节点的直接子节点，和 <anim> 平级。
 
 
   ■ ③ 周 XML
@@ -4514,6 +4731,75 @@
 
     经验法则：能做成事件的就做成事件 —— 因为改起来不用碰代码，团队里不会写代码
     的人也能调。
+
+
+  ■ 自定义事件的 JSON：data/events/<名字>.json
+  ──────────────────────────────────────
+
+    引擎自带的 14 个事件是写死在 EventsData.defaultEventsParams 里的。你自己的
+    事件用 JSON 定义 —— 一个事件一个文件，文件名就是事件名。
+
+  ┌─ 代码：data/events/My Event.json ［json］
+  │ {
+  │ 	"params": [
+  │ 		{
+  │ 			"name": "目标轨道",
+  │ 			"type": "Int(0, 3)",
+  │ 			"defaultValue": 0
+  │ 		},
+  │ 		{
+  │ 			"name": "强度",
+  │ 			"type": "Float(0, 2, 0.1, 2)",
+  │ 			"defaultValue": 1
+  │ 		},
+  │ 		{
+  │ 			"name": "是否循环",
+  │ 			"type": "Bool",
+  │ 			"defaultValue": false
+  │ 		}
+  │ 	]
+  │ }
+  └─ 代码结束
+
+    ［字段 ｜ 说明］
+      · params ｜ 参数数组，顺序就是谱面里 params[] 的顺序
+      · params[].name ｜ 编辑器里显示的名字（可以写中文）
+      · params[].type ｜ 一段 HScript 表达式字符串（见下表）
+      · params[].defaultValue ｜ 默认值
+      · params[].saveIfDefault ｜ 等于默认值时是否还写进谱面（false 能让谱面文件
+        更干净）
+
+    type 不是枚举，是表达式。引擎会用一个只暴露这几个构造器的 HScript 解释器去
+    求值：
+
+    ［写什么 ｜ 得到什么 ｜ 参数］
+      · Bool ｜ 开关 ｜ —
+      · Int(min, max, step) ｜ 整数 ｜ 都可省略
+      · Float(min, max, step, precision) ｜ 小数 ｜ 都可省略
+      · String ｜ 文本框 ｜ —
+      · DropDown("A", "B", "C") ｜ 下拉框 ｜ 任意个值
+      · ColorWheel ｜ 取色器 ｜ —
+      · StrumLine ｜ 选一条轨道 ｜ —
+      · Character ｜ 选一个角色 ｜ —
+      · Stage ｜ 选一个舞台 ｜ —
+
+    【建议：精简写法】
+      Int / Float 不传参数就是「不限范围」，比如 "type": "Float" 就是一个任意小
+      数。
+
+
+  ■ .pack 格式：把名字和内容塞进一个文件
+  ────────────────────────────────────
+
+    除了 .json，data/events/ 还认 .pack。它用固定分隔符把「事件名」和「JSON 内
+    容」拼在一起，方便你在不能建文件名的环境里传事件：
+
+  ┌─ 代码：结构 ［ini］
+  │ 事件名________PACKSEP________（占位，忽略）________PACKSEP________{"params":[...]}
+  └─ 代码结束
+
+    实际用不到就别碰，.json 更直观。改完事件定义要重进一次歌曲/编辑器（引擎在
+    reloadEvents() 里只读一次）。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -7030,6 +7316,40 @@
       · 整个对话换样式 ｜ 换一个 <dialogue box="另一个框">
 
 
+  ■ ⑬ 视频字幕：用 .srt，和视频同名
+  ───────────────────────────────
+
+    VideoCutscene 的字幕不是写在 XML 里，而是读一个和视频同名的 .srt 文件（标
+    准字幕格式，手写也行、剪辑软件导出也行）。
+
+  ┌─ 代码：assets/videos/intro.srt（对应 videos/intro.mp4） ［ini］
+  │ 1
+  │ 00:00:01,000 --> 00:00:04,500
+  │ 欢迎来到我的 mod。
+  │ 
+  │ 2
+  │ 00:00:05,000 --> 00:00:08,000
+  │ 下面这段是剧情，
+  │ 可以按 ESC 跳过。
+  └─ 代码结束
+
+    ［规则 ｜ 说明］
+      · 文件名 ｜ <视频名>.srt，和视频同目录同名（Paths.withoutExtension() 后拼
+        .srt）
+      · 编号行 ｜ 纯数字，只用来分段；解析器会跳过不是数字的行
+      · 时间行 ｜ 起始 --> 结束，格式 时:分:秒,毫秒
+      · 文本行 ｜ 中间可以多行，直到遇到空行
+      · 编码 ｜ UTF-8（中文别用 GBK，会乱码）
+
+    解析是 parseSubtitles() 里手写的，很宽松：编号不是数字、时间行没有 -->、时
+    间戳解析失败，都会被静默跳过而不是报错。所以「字幕没出现」通常是同名/同目
+    录/编码三个原因。
+
+    【建议：不想用 srt】
+      也可以完全不写字幕文件，在自己脚本里直接操作 VideoCutscene.setSubtitle()
+      手动控制。
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 38 节　存档与分数 API
 　SAVE DATA
@@ -7565,7 +7885,7 @@
   ──────────
 
     ［文件 ｜ 作用范围 ｜ 分区前缀］
-      · assets/data/config/flags.ini（基础） ｜ 整个引擎 ｜ 见下表
+      · data/config/flags.ini（默认不存在，要覆盖才新建） ｜ 整个引擎 ｜ 见下表
       · mods/<mod>/data/config/modpack.ini 的 [Flags] ｜ 只有该 mod 生效 ｜ 不加
         前缀
 
@@ -7876,8 +8196,8 @@
   ■ ⑦ 排查「我改了没生效」
   ──────────────────────
 
-      1. 确认改的是基础 assets/data/config/flags.ini 还是 mod 的 [Flags] —— mod
-        的只在该 mod 生效。
+      1. 确认改的是基础 data/config/flags.ini（自己新建的那个）还是 mod 的
+        [Flags] —— mod 的只在该 mod 生效。
       2. 确认值类型对：true 不是 True，字符串要引号。
       3. 确认改完重启了。
       4. 确认该 Flag 没被别处硬编码覆盖（有些 Flag 只是「初始值」，之后会被
@@ -8297,7 +8617,411 @@
 
 
 ────────────────────────────────────────────────────────────────────────
-　第 47 节　附录：快捷键、术语与链接
+　第 47 节　编译开关：为什么别人的构建有这个功能，你的没有
+　BUILD DEFINES
+────────────────────────────────────────────────────────────────────────
+
+　关键词：project.xml、define、构建、STRIPPED_COMPILE
+
+
+  ■ ① 全部编译开关（project.xml 的 <define>）
+  ──────────────────────────────────────
+
+    ［开关 ｜ 默认 ｜ 作用 / 关掉会怎样］
+      · SHOW_BUILD_ON_FPS ｜ 开 ｜ F3 面板上显示构建号
+      · DARK_MODE_WINDOW ｜ 开 ｜ Windows 标题栏深色
+      · UPDATE_CHECKING ｜ 开（桌面） ｜ 启动时检查新版本；关掉就没「有新版本」
+        提示
+      · DISCORD_RPC ｜ 开（桌面） ｜ Discord 状态；关掉 data/discord.hx 不跑
+      · VIDEO_CUTSCENES ｜ 开 ｜ 视频过场；关掉 VideoCutscene 不可用
+      · MODCHARTING_FEATURES ｜ 开 ｜ modchart；STRIPPED_COMPILE 时关掉
+      · THREE_D_SUPPORT ｜ 开 ｜ 3D 模型加载；STRIPPED_COMPILE 时关掉
+      · NAPE_ENABLED ｜ 开 ｜ 2D 物理（NAPE）；STRIPPED_COMPILE 时关掉
+      · CUSTOM_CLASSES ｜ 开 ｜ 脚本里能 import 自定义类；关掉就等于脚本能力砍半
+      · COMPILE_ALL_CLASSES ｜ 开 ｜ 把所有类都编进去（脚本能反射到）；关掉体积
+        小但反射不到
+      · GITHUB_API ｜ 开（非 web/hl） ｜ GitHub API 相关（更新、贡献者列表）
+      · USE_ADAPTED_ASSETS ｜ 开（非 web） ｜ 使用适配后的资源（web 上关）
+      · PRELOAD_ALL ｜ 开 ｜ 启动时预加载全部资源（加载慢、进游戏快）
+      · NO_PRELOAD_ALL ｜ （自动） ｜ PRELOAD_ALL 关掉时自动定义，改为按需加载
+      · FLX_NO_GENERIC ｜ 开 ｜ 关掉 Flixel 的泛型检查（编译兼容）
+      · disable-version-check ｜ 开 ｜ 关掉 haxelib 版本检查
+      · STRIPPED_COMPILE ｜ 关 ｜ 「精简编译」总开关（见下）
+      · MOD_SUPPORT ｜ 开 ｜ mod 系统；关掉就没有 mods/ 目录这回事
+
+
+  ■ ② STRIPPED_COMPILE：一刀砍掉四样东西
+  ────────────────────────────────────
+
+    发行版如果开了这个（-D STRIPPED_COMPILE），下面这些会同时消失：
+
+      · MODCHARTING_FEATURES —— 箭头特效（第 36 节）
+      · THREE_D_SUPPORT —— 3D 模型（第 21 节）
+      · NAPE_ENABLED —— 物理
+      · CUSTOM_CLASSES / COMPILE_ALL_CLASSES —— 脚本的自定义类能力
+
+    所以最常见的困惑「为什么我 import modchart.Manager 报错」，答案往往不是代
+    码写错，而是这个构建被 strip 了。
+
+
+  ■ ③ 怎么知道自己手上这个构建有什么
+  ────────────────────────────────
+
+  ┌─ 代码：一行一个开关，缺哪个就少哪个 ［haxe］
+  │ function postCreate() {
+  │ 	#if MODCHARTING_FEATURES
+  │ 	trace("modchart: 有");
+  │ 	#else
+  │ 	trace("modchart: 没有");
+  │ 	#end
+  │ 
+  │ 	#if VIDEO_CUTSCENES
+  │ 	trace("视频过场: 有");
+  │ 	#else
+  │ 	trace("视频过场: 没有");
+  │ 	#end
+  │ 
+  │ 	#if THREE_D_SUPPORT
+  │ 	trace("3D: 有");
+  │ 	#else
+  │ 	trace("3D: 没有");
+  │ 	#end
+  │ 
+  │ 	#if CUSTOM_CLASSES
+  │ 	trace("自定义类: 有");
+  │ 	#else
+  │ 	trace("自定义类: 没有");
+  │ 	#end
+  │ }
+  └─ 代码结束
+
+
+  ■ ④ 这些开关能不能在运行时改
+  ──────────────────────────
+
+    不能。 #if 是编译期就切掉的，运行时不存在的代码就是不存在。Flags（第 42 节）
+    是另一回事 —— 那是运行时读的 ini，能改。两者别混。
+
+    ［ ｜ 编译开关 define ｜ 运行时 Flag］
+      · 在哪 ｜ project.xml ｜ flags.ini / modpack.ini
+      · 何时生效 ｜ 编译时 ｜ 每次启动
+      · 能改吗 ｜ 要重新编译 ｜ 玩家/作者改文件即可
+      · 典型 ｜ VIDEO_CUTSCENES ｜ DISABLE_EDITORS
+
+
+  ■ ⑤ 自定义编译（你确实需要的话）
+  ──────────────────────────────
+
+  ┌─ 代码：project.xml 里加/删 define ［ini］
+  │ <!-- 加 -->
+  │ <define name="MY_MOD_FLAG" />
+  │ 
+  │ <!-- 有条件地加 -->
+  │ <define name="MODCHARTING_FEATURES" unless="STRIPPED_COMPILE" />
+  │ 
+  │ <!-- 命令行覆盖（临时编译一次） -->
+  │ <!-- haxe build.hxml -D STRIPPED_COMPILE -->
+  └─ 代码结束
+
+    编译流程在 building/ 里（cne-windows.bat 之类），但完整编译环境（Haxe +
+    haxelib 依赖 + VS）不在本文范围内。
+
+
+  ■ ⑥ mod 怎么跟编译开关打交道
+  ──────────────────────────
+
+      · 能条件编译就条件编译：#if MODCHARTING_FEATURES 包住你的 modchart 代码。
+      · 别假设：不要假设对方构建有 3D/视频/modchart。
+      · 给玩家提示：缺功能时用 trace 或 UI 明确说「这个构建不支持 X」，比静默失
+        败好。
+      · modpack.ini 里写清要求：[Common] 的 API_VERSION 之外，可以在描述里注明需
+        要什么构建。
+
+
+  ■ ⑦ 为什么会有人做 strip 版
+  ─────────────────────────
+
+    体积小、启动快、不给玩家乱改（没有编辑器）。代价是 mod 生态能用的一半功能
+    没了。做 mod 时优先按「完整构建」写，再用 #if 做降级。
+
+
+────────────────────────────────────────────────────────────────────────
+　第 48 节　多 mod 共存：谁覆盖谁与 LIB_ 机制
+　MULTI-MOD
+────────────────────────────────────────────────────────────────────────
+
+　关键词：LIB_、覆盖、加载顺序、zip
+
+
+  ■ ① 两种关系：覆盖 vs 叠加
+  ────────────────────────
+
+    ［资源类型 ｜ 多个 mod 都有时 ｜ 例子］
+      · 图片 / 音频 / XML / JSON ｜ 后加载的覆盖（只有一个生效） ｜ 两个 mod 都
+        改 bf.xml，只有后加载的那个管用
+      · 状态脚本 ｜ 全部叠加执行 ｜ 两个 mod 都给 PlayState 写脚本，两个都会跑
+      · 全局脚本 ｜ 全部叠加执行 ｜ data/global.hx
+      · 设置项 / 按键分类 ｜ 按文件分开，都显示 ｜ 每个 mod 一份 LIB_<mod>
+      · 状态重定向 ｜ 先到先得，force 才覆盖 ｜ 见第 41 节
+
+    【注意：最容易翻车的一点】
+      两个 mod 都改 data/characters/bf.xml，你以为会合并，其实只有一个生效。要「
+      各改各的」，只能用脚本在 postCreate 里补，或者干脆别改同一个文件。
+
+
+  ■ ② LIB_ 是什么
+  ─────────────
+
+    引擎内部有个「虚拟路径」技巧：data/states/PlayState/LIB_mymod 会被重定向到
+    mymod 这个 mod 自己的 data/states/PlayState.hx。这样同一个目录下，每个 mod
+    各有一份，互不覆盖。
+
+  ┌─ 代码：磁盘上的真实文件 vs 引擎看到的路径 ［ini］
+  │ 磁盘:
+  │   mods/A/data/states/PlayState.hx
+  │   mods/B/data/states/PlayState.hx
+  │ 
+  │ 引擎看到的:
+  │   data/states/PlayState/LIB_A   → mods/A/...PlayState.hx
+  │   data/states/PlayState/LIB_B   → mods/B/...PlayState.hx
+  └─ 代码结束
+
+    所以你在磁盘上不用建 PlayState/ 这个文件夹，只要把文件放成
+    data/states/PlayState.hx，引擎会自动按 mod 名去取。
+
+
+  ■ ③ 哪 5 个地方支持 LIB_
+  ──────────────────────
+
+    ［地方 ｜ 引擎里的路径 ｜ 你磁盘上放哪］
+      · 状态脚本 ｜ data/states/<状态名>/LIB_<mod> ｜ data/states/<状态名>.hx
+      · 全局脚本 ｜ data/global/LIB_<mod> ｜ data/global.hx
+      · 设置项 ｜ config/options/LIB_<mod> ｜ data/config/options.xml
+      · 按键分类 ｜ config/controls/LIB_<mod> ｜ data/config/controls.xml
+      · 制作名单 ｜ config/credits/LIB_<mod> ｜ data/config/credits.xml
+
+    第 5 项是个彩蛋：制作名单也能按 mod 分开写，你的 mod 可以有自己的 Credits
+    页内容。
+
+
+  ■ ④ 加载顺序
+  ──────────
+
+      1. 基础游戏资源库（assets/）先注册。
+      2. mods/ 下所有 mod 按排序规则注册（默认按名字，可在 Mod 菜单里调）。
+      3. addons/ 在 mod 之后叠加。
+      4. 当前选中的 mod 优先级最高（它的 [Flags] 会真正 parseFlags，其他 mod 的
+        flags 只存进 addonFlags 备用）。
+
+    【说明：顺序怎么影响你】
+      覆盖类资源：后注册的赢，也就是当前 mod > addons > 其他 mod > 原版。脚本类：
+      全部执行，但顺序 = 加载顺序，靠后的先看到？不 —— 先加载的先执行，所以后加
+      载的脚本「最后说话」。
+
+
+  ■ ⑤ 歌曲/周的合并策略
+  ───────────────────
+
+    多个 mod 都有歌时，列表怎么拼？由两个 Flag 控制：
+
+    ［值 ｜ 效果］
+      · override（默认） ｜ 只用当前 mod 的歌单，原版和其他 mod 的都不显示
+      · prepend ｜ mod 的歌排在原版前面
+      · append ｜ mod 的歌排在原版后面
+
+  ┌─ 代码：modpack.ini ［ini］
+  │ [Flags]
+  │ # 让我的歌追加在原版歌单后面，而不是整个替换
+  │ SONGS_LIST_MOD_MODE="append"
+  │ WEEKS_LIST_MOD_MODE="append"
+  └─ 代码结束
+
+
+  ■ ⑥ zip 与 .cnemod
+  ────────────────
+
+      ▸ 支持压缩包
+          是。mods/mymod.zip 也能直接跑（ZipFolderLibrary）
+      ▸ 允许的后缀
+          由 Flags.ALLOWED_ZIP_EXTENSIONS 决定，默认只有 ["zip"]
+      ▸ .cnemod
+          默认不认。想用 .cnemod 后缀，得把它加进 ALLOWED_ZIP_EXTENSIONS
+      ▸ 代价
+          zip 是只读的 —— 编辑器没法往里写，会弹 Compressed Library Detected
+      ▸ 建议
+          开发时用文件夹，发布时再压 zip
+
+
+  ■ ⑦ modpack.ini 的 [Common] 到底能写什么
+  ──────────────────────────────────────
+
+    引擎会把 [Common] 里的每个键加上 MOD_ 前缀塞进 Flags，所以键名其实很自由；
+    但这几个是引擎真的会读的：
+
+    ［键 ｜ 实际 Flag ｜ 用途］
+      · NAME ｜ MOD_NAME ｜ mod 显示名（Mod 菜单、标题）
+      · DESCRIPTION ｜ MOD_DESCRIPTION ｜ 一句话描述
+      · AUTHOR ｜ MOD_AUTHOR ｜ 作者
+      · VERSION ｜ MOD_VERSION ｜ 版本号
+      · API_VERSION ｜ MOD_API_VERSION ｜ 要的 Mod API 版本（当前 3）
+      · ICON ｜ MOD_ICON ｜ Mod 菜单图标
+      · HOMEPAGE ｜ MOD_HOMEPAGE ｜ 主页链接
+
+  ┌─ 代码：mods/my-mod/data/config/modpack.ini ［ini］
+  │ [Common]
+  │ NAME="My Mod"
+  │ DESCRIPTION="一句话说清这是什么"
+  │ AUTHOR="you"
+  │ VERSION="1.0.0"
+  │ API_VERSION=3
+  │ HOMEPAGE="https://github.com/you/my-mod"
+  └─ 代码结束
+
+    【注意：API_VERSION 写错会怎样】
+      不是当前版本（3）时，引擎会在 Mod 菜单/启动时给警告 —— 不一定会崩，但表现
+      可能异常。别乱写大数字。
+
+
+  ■ ⑧ 冲突排查清单
+  ──────────────
+
+    ［现象 ｜ 查什么］
+      · 人物/舞台显示成别人的 ｜ 两个 mod 改了同一个 XML —— 覆盖了，只有一个生效
+      · 脚本执行了两次 ｜ 两个 mod 都给同一个状态写了脚本（这是叠加，正常）
+      · 设置里出现两份一样的选项 ｜ 两个 mod 的 options.xml 内容重复
+      · 切 mod 后崩 ｜ static 变量残留上一个 mod 的数据
+      · 歌单里少了歌 ｜ SONGS_LIST_MOD_MODE 是 override（默认），把别人挤掉了
+      · zip mod 改不动 ｜ 压缩包只读，解压成文件夹
+      · .cnemod 不认 ｜ 没加进 ALLOWED_ZIP_EXTENSIONS
+
+
+  ■ ⑨ 写「和别人共存」的 mod 的几条规矩
+  ───────────────────────────────────
+
+      · 别改公共文件（bf.xml、stage.xml），能挂脚本就挂脚本。
+      · 脚本里加前缀：mymod_xxx 这种命名，避免和别人的函数/变量撞。
+      · 设置项 id 加前缀（第 39 节），否则两个 mod 的 volume 会互相踩。
+      · 按键 saveName 加前缀（第 40 节）。
+      · static 变量记得在 destroy 里清。
+      · 别默认 override 歌单，除非你就是要做独立游戏。
+
+
+────────────────────────────────────────────────────────────────────────
+　第 49 节　Discord 状态：改「正在玩什么」
+　DISCORD RPC
+────────────────────────────────────────────────────────────────────────
+
+　关键词：Discord、RPC、discord.hx
+
+
+  ■ ① 文件在哪
+  ──────────
+
+      ▸ 基础脚本
+          assets/data/discord.hx
+      ▸ mod 覆盖
+          mods/<你的mod>/data/discord.hx（整份替换）
+      ▸ 前置条件
+          编译时开了 DISCORD_RPC（桌面版默认开）
+      ▸ 客户端 ID
+          data/config/discord.json（clientID + 图标 key）
+
+
+  ■ ② 它能收到哪些回调
+  ──────────────────
+
+    ［回调 ｜ 什么时候触发］
+      · onDiscordPresenceUpdate(e) ｜ 每次要更新状态前 —— 改字段就在这里改
+      · onPlayStateUpdate() ｜ 打歌中（可用来更新「正在玩」的进度）
+      · onMenuLoaded(name) ｜ 进菜单时，name 是 "Main Menu" / "Freeplay" /
+        "Options Menu" …
+      · onEditorTreeLoaded(name) ｜ 打开编辑器选择界面
+      · onEditorLoaded(name, editingThing) ｜ 进到某个编辑器里面
+      · onGameOver() ｜ 死亡时
+
+
+  ■ ③ DiscordUtil 的三个方法
+  ────────────────────────
+
+  ┌─ 代码 ［haxe］
+  │ import funkin.backend.utils.DiscordUtil;
+  │ 
+  │ // 1) 直接设状态（大字 + 小字）
+  │ DiscordUtil.changePresence("正在改谱", "第 3 周");
+  │ 
+  │ // 2) 设歌曲状态（会自动带计时器 = 正在播放的进度）
+  │ DiscordUtil.changeSongPresence(details, state, inst, icon);
+  │ 
+  │ // 3) 设状态并从某个时间点开始计时（传入 null = 从「现在」开始）
+  │ DiscordUtil.changePresenceSince("在主菜单", null);
+  └─ 代码结束
+
+
+  ■ ④ 改按钮
+  ────────
+
+  ┌─ 代码：data/discord.hx（官方自带的那段） ［haxe］
+  │ function onDiscordPresenceUpdate(e) {
+  │ 	var data = e.presence;
+  │ 
+  │ 	if (data.button1Label == null)
+  │ 		data.button1Label = "加入 Discord";
+  │ 	if (data.button1Url == null)
+  │ 		data.button1Url = "https://discord.gg/你的邀请链接";
+  │ }
+  └─ 代码结束
+
+    e.presence 上能改的还有 details、state、largeImageKey、largeImageText、
+    smallImageKey、smallImageText 等 —— 都是标准 Discord RPC 字段。
+
+
+  ■ ⑤ 自带的 discord.hx 做了什么
+  ────────────────────────────
+
+      · 死亡时把状态改成「Game Over」+ 歌名难度
+      · 打歌时用 changeSongPresence 把进度条跑起来
+      · 进菜单时设成「In the Menus」
+      · 进编辑器时设成「Choosing a Chart」这类
+      · 给状态加一个「加入 Discord」按钮
+
+
+  ■ ⑥ 一个 mod 专属的写法
+  ─────────────────────
+
+  ┌─ 代码：mods/my-mod/data/discord.hx ［haxe］
+  │ import funkin.backend.utils.DiscordUtil;
+  │ 
+  │ function onMenuLoaded(name:String) {
+  │ 	if (name == "Freeplay")
+  │ 		DiscordUtil.changePresenceSince("在我的 mod 里挑歌", null);
+  │ 	else
+  │ 		DiscordUtil.changePresenceSince("在菜单里", null);
+  │ }
+  │ 
+  │ function onPlayStateUpdate() {
+  │ 	DiscordUtil.changeSongPresence(
+  │ 		"My Mod",
+  │ 		PlayState.SONG.meta.displayName + " [" + PlayState.difficulty + "]",
+  │ 		PlayState.instance.inst,
+  │ 		PlayState.instance.getIconRPC()
+  │ 	);
+  │ }
+  └─ 代码结束
+
+
+  ■ ⑦ 注意事项
+  ──────────
+
+      · 别写死 song 名：用 PlayState.SONG.meta.displayName，换歌自动跟着变。
+      · discord.json 的 clientID 别乱改：改了就连不上 Codename 的应用，你写的是
+        自己的 App ID 才行。
+      · 关闭 Discord 时不会崩，只是没有状态。
+      · 多语言：官方那段用 TranslationUtil.translate('rpc.xxx')，你也能用，翻译
+        在 languages/*/RPC.xml。
+
+
+────────────────────────────────────────────────────────────────────────
+　第 50 节　附录：快捷键、术语与链接
 　APPENDIX
 ────────────────────────────────────────────────────────────────────────
 

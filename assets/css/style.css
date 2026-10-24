@@ -1168,3 +1168,12 @@ body.dev-unlocked .badge-dev { display: inline-block; }
   .sec p, .sec li, .sec td { color: #222; }
   .codeblock, .xmllab { border-color: #ccc; background: #f7f7f7; }
 }
+
+/* ---- 背景音乐按钮与署名 ---- */
+.iconbtn.is-on { color: var(--yellow); border-color: rgba(255,212,71,.55); }
+.iconbtn.is-on::after {
+  content: ''; position: absolute; inset: auto 4px 3px 4px; height: 2px;
+  background: var(--yellow); border-radius: 2px; opacity: .9;
+}
+.footer__bgm { opacity: .62; font-size: .92em; }
+@media print { .iconbtn#btnBgm { display: none; } }

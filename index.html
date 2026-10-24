@@ -45,6 +45,7 @@
     </button>
   </div>
 
+  <button class="iconbtn" id="btnBgm" title="背景音乐 开/关（M）" aria-label="背景音乐" aria-pressed="true">♪</button>
   <button class="iconbtn" id="btnSearch" title="搜索章节（Ctrl+K 或 /）" aria-label="搜索">⌕</button>
   <button class="iconbtn" id="btnKeys" title="快捷键一览（?）" aria-label="快捷键">?</button>
   <a class="topbar__wiki" href="https://codename-engine.com/wiki/" target="_blank" rel="noopener noreferrer">
@@ -121,9 +122,12 @@
         <span>制作人：一人制作</span>
         <span>纯静态页面 · 无后端 · 无广告 · 无评论区</span>
         <span>整理时间 2026-10-23 · 对应 Windows Builds #1392</span>
+        <span class="footer__bgm">背景音乐：Juhani Junkala《Chiptune Adventures – Stage 1》（CC0 公有领域，可自由使用）</span>
       </div>
     </footer>
   </main>
+
+  <audio id="bgm" src="assets/audio/bgm.mp3" loop preload="none" aria-hidden="true"></audio>
 
   <aside class="hud" id="hud" aria-label="阅读仪表"></aside>
 </div>

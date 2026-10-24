@@ -66,7 +66,38 @@
           { h: '启动细节' },
           { p: "`Main` 在 `preInit` 阶段做了几件容易被忽略的事：注册 DPI 感知（Windows 上 125%/150% 缩放不再糊）、解析命令行参数、**修正工作目录**（所以从快捷方式启动也能正确找到 assets）、初始化日志与崩溃处理器。" },
           { p: "随后 `MainState` 会清理 `.temp` 临时目录、保存一次设置、重置资源库列表，再依次加载：addons（按 `[LOW]` / `[HIGH]` 前缀决定优先级）→ 选中的 mod → `flags.ini` / `modpack.ini` → 存档 → 语言 → 全局脚本。**你看到的「加载中」大部分时间花在这里**。" },
-          { p: "命令行还支持直接进游戏：`-song bopeebo -diff hard` 之类可以跳过菜单直接开打，做测试很方便。" }
+          { p: "命令行还支持直接进游戏：`-song bopeebo -diff hard` 之类可以跳过菜单直接开打，做测试很方便。" },
+          { h: '启动流程：从 exe 到主菜单，中间过了几个状态' },
+          { p: "很多人以为「打开游戏就是主菜单」，其实中间至少经过 3 个状态。搞清这条链，你才知道「我想改的那个界面」到底叫什么。" },
+          {
+            ol: [
+              "`Main` 初始化：读命令行、修工作目录、加载 `mods/` 与 `addons/`、注册语言包。",
+              "`MainState`：一切的总调度。它决定接下来去哪 —— 有 `-song` 就直接进打歌，有更新就进更新页。",
+              "`TitleState`：标题 + 16 拍开场动画，结束后自动跳主菜单（也可按键跳过）。",
+              "`MainMenuState`：主菜单。从这里进自由游玩 / 故事模式 / 设置 / 制作名单 / Mod 切换。",
+              "打歌时：`PlayState`（+ 可选的 `DialogueCutscene` 过场、`PauseSubState` 暂停）。"
+            ]
+          },
+          {
+            table: {
+              head: ['界面', '类名', '文件'],
+              rows: [
+                ['标题', '`TitleState`', '`funkin/menus/TitleState.hx`'],
+                ['主菜单', '`MainMenuState`', '`funkin/menus/MainMenuState.hx`'],
+                ['自由游玩', '`FreeplayState`', '`funkin/menus/FreeplayState.hx`'],
+                ['故事模式', '`StoryMenuState`', '`funkin/menus/StoryMenuState.hx`'],
+                ['设置', '`OptionsMenu`', '`funkin/options/OptionsMenu.hx`'],
+                ['制作名单', '`CreditsMain`', '`funkin/menus/credits/CreditsMain.hx`'],
+                ['打歌', '`PlayState`', '`funkin/game/PlayState.hx`'],
+                ['暂停', '`PauseSubState`', '`funkin/menus/PauseSubState.hx`']
+              ]
+            }
+          },
+          { p: "**关键**：这些类名同时就是「状态脚本」的文件名。想看/改任何一个界面，先看它有没有 `data/states/<类名>.hx` 这一层。" },
+          { code: { lang: 'ini', title: '一份脚本能挂到哪些界面', src: 'data/states/TitleState.hx      → 只影响标题\ndata/states/MainMenuState.hx   → 只影响主菜单\ndata/states/PlayState.hx       → 只影响打歌\ndata/global.hx                 → 影响所有界面' } },
+          { callout: { kind: 'tip', title: '换界面不用改源码', text: "想整个换掉某个界面，用 `StateRedirects`（第 41 节）；想在上面加东西，用状态脚本。两条路都不用碰 Haxe 源码。" } },
+          { h: '状态切换时发生了什么（为什么脚本里 `state` 会变）' },
+          { p: "每次 `FlxG.switchState(...)` 都会走一次「退出旧状态 → 创建新状态 → 挂脚本」的流程。所以脚本里的 `state` 是**创建那一刻**的值，别把它存进 `static` 里反复用。" },
         ]
       },
 
@@ -115,7 +146,36 @@
               "空的 `<text beat=\"n\"/>` 等于**清屏**。"
             ]
           },
-          { p: "这些节点的样式（Skew 的字体、Alphabet 的动画）来自 `data/alphabet/*.xml`；如果某个标题字显示不出来，先去检查字体 XML 里有没有那个字符的 `<anim>`。" }
+          { p: "这些节点的样式（Skew 的字体、Alphabet 的动画）来自 `data/alphabet/*.xml`；如果某个标题字显示不出来，先去检查字体 XML 里有没有那个字符的 `<anim>`。" },
+          { h: '`TitleState` 的内部结构' },
+          {
+            table: {
+              head: ['字段', '类型', '说明'],
+              rows: [
+                ['`curWacky`', '`Array<String>`', '当前那一对随机吐槽（`introText.txt` 里的一行，被 `--` 拆成两段）'],
+                ['`titleLength`', '`Int`', '开场总长（拍），来自 XML 的 `<intro length="16">`'],
+                ['`titleLines`', '`Map<Int, IntroText>`', '第几拍 → 该显示什么'],
+                ['`titleSprites`', '`Map<String, FlxSprite>`', 'XML 里声明的所有精灵'],
+                ['`lines`', '`Array`', '实际要画的元素序列']
+              ]
+            }
+          },
+          { p: "开源引擎里标题界面的最大不同：**它是数据驱动的**。`data/titlescreen/titlescreen.xml` 里的 `<intro>` 就是时间轴，`beat` 属性是「第几拍触发」：" },
+          { code: { lang: 'xml', src: '<intro length="16">\n\t<text beat="1"><line text="ninjamuffin99" /></text>\n\t<text beat="4" />                        <!-- 空 = 清屏 -->\n\t<text beat="7"><sprite path="menus/titlescreen/newgrounds_logo" scale="0.8"/></text>\n\t<text beat="9"><introtext line="1" /></text>   <!-- 引用 introText.txt 的第 1 段 -->\n</intro>' } },
+          { h: '三个常见修改与它们改哪里' },
+          {
+            table: {
+              head: ['想改', '改哪'],
+              rows: [
+                ['换开场文字', '`data/titlescreen/introText.txt`（一行一条，`--` 分两段）'],
+                ['换开场节奏/顺序', '`titlescreen.xml` 的 `<intro>` 里挪 `beat`'],
+                ['换字体/logo/加精灵', '`titlescreen.xml` 的 `<sprites>` 与 `<sprite>`'],
+                ['整个改成自己的动画', '写 `data/states/TitleState.hx` 覆盖 `create`']
+              ]
+            }
+          },
+          { code: { lang: 'haxe', title: '用状态脚本加一个自己的标题元素', src: 'function postCreate() {\n\t// 在原版标题上加一行小字\n\tvar tip = new FlxText(0, FlxG.height - 40, FlxG.width, "按 ENTER 开始", 18);\n\ttip.setFormat(Paths.font("vcr.ttf"), 18, 0xFFFFFFFF, CENTER);\n\tadd(tip);\n}\n\n// 在开场结束、跳主菜单之前插一脚\nfunction onIntroEnd() {\n\ttrace("标题动画播完了");\n}' } },
+          { callout: { kind: 'info', title: '跳过逻辑', text: "开场可以被按键跳过（`Enter` / `Space` 都能跳）。想禁掉或改键，就在状态脚本里改 `skipIntro` 相关字段，或直接拦住按键。" } },
         ]
       },
 
@@ -164,7 +224,41 @@
               "`onSelectItem`（NameEvent）：确认选择时触发，**可以改名从而改变跳转目标**，也可以 Cancel 掉不让它跳。",
               "对应脚本路径：`data/states/MainMenuState.hx`（软编码 State 机制）。"
             ]
-          }
+          },
+          { h: '主菜单项是「读文件」读出来的' },
+          { p: "主菜单不是写死的 5 个按钮，而是读 `data/config/menuItems.txt`。**一行一个菜单项**，格式是「id:显示名」。" },
+          { code: { lang: 'ini', title: 'data/config/menuItems.txt', src: 'story:STORY MODE\nfreeplay:FREEPLAY\noptions:OPTIONS\ncredits:CREDITS\n# 注释行会被忽略' } },
+          {
+            kv: [
+              ['冒号左边', '菜单 id —— 决定按下去跳哪个状态（`story` → `StoryMenuState`）'],
+              ['冒号右边', '显示名（会过大写化处理）'],
+              ['想加自己的', '加一行 `mything:MY THING`，再用状态脚本拦 `onSelect` 自己处理'],
+              ['想删原版的', '删掉那一行即可；但别把 `freeplay` 删了，很多人找不到歌']
+            ]
+          },
+          { h: '`MainMenuState` 的可改字段' },
+          {
+            table: {
+              head: ['字段', '说明'],
+              rows: [
+                ['`canAccessDebugMenus`', '能不能打开编辑器/调试菜单（默认 = `!Flags.DISABLE_EDITORS`）'],
+                ['`menuItems`', '实际渲染的菜单项数组（改它 = 改按钮）'],
+                ['`curSelected`', '当前选中项'],
+                ['`grpItems`', '承载按钮的组（想加装饰元素就 `add()` 到别处）']
+              ]
+            }
+          },
+          { h: 'Mod 切换：`TAB` 背后发生了什么' },
+          {
+            ol: [
+              "`TAB` → 打开 `ModSwitchMenu`（一个子状态），列出 `mods/` 下所有合法 mod。",
+              "选中后调 `ModsFolder.switchMod(name)` —— 它会**重建整个 `MainState`**。",
+              "所以切 mod 之后，**之前状态里的一切对象都失效**：静态变量、缓存的 Sprite、闭包全不能用。",
+              "`Options.lastLoadedMod` 会记住你的选择，下次启动自动加载。"
+            ]
+          },
+          { code: { lang: 'haxe', title: '用脚本加一个自己的菜单项', src: '// 在 MainMenuState 的状态脚本里\nfunction postCreate() {\n\t// 在最下面加一行提示（不改按钮）\n\tvar hint = new FlxText(20, FlxG.height - 30, 0, "按 TAB 切换 Mod", 14);\n\thint.setFormat(Paths.font("vcr.ttf"), 14, 0xFF888888);\n\tadd(hint);\n}\n\n// 想在选中某个菜单项时干别的事\nfunction onSelect(id:String) {\n\tif (id == "credits") {\n\t\t// 比如改成打开自己的网页\n\t\tCoolUtil.openURL("https://github.com/zeelingAQ/codename-engine-manual");\n\t}\n}' } },
+          { callout: { kind: 'warn', title: '`menuItems.txt` 改坏了会怎样', text: "读不出来就是**空菜单**（没有按钮可点）。改之前备份，或者先用状态脚本在代码里改 `menuItems` 试效果。" } },
         ]
       },
 
@@ -324,7 +418,46 @@
               "周的 `chars` 指向的角色 XML 不存在 → 周角色为空，但周本身还在。",
               "`modpack.ini` 的 `[Flags]` 把周列表模式改成了 override，导致你的周被盖掉。"
             ]
-          }
+          },
+          { h: '`StoryMenuState` 的字段全表' },
+          {
+            table: {
+              head: ['字段', '类型', '说明'],
+              rows: [
+                ['`weeks`', '`Array<WeekData>`', '所有周（按 `weeks.txt` 排序）'],
+                ['`weekList`', '`StoryWeeklist`', '周的来源管理（原版/mod 合并）'],
+                ['`curWeek` / `curDifficulty`', '`Int`', '当前选中的周 / 难度下标'],
+                ['`canSelect`', '`Bool`', '能不能左右切换（进歌时会被锁）'],
+                ['`lockdown`', '`Bool`', '锁定后禁止返回（打完这一周前出不去）'],
+                ['`weekSprites`', '`FlxTypedGroup<MenuItem>`', '右侧的周列表'],
+                ['`characterSprites`', '`FlxTypedGroup<FunkinSprite>`', '中间站着的周角色'],
+                ['`characters`', '`Map<String, WeekCharacter>`', '周角色名 → 配置'],
+                ['`tracklist` / `weekTitle` / `scoreText`', '`FlxText`', '右侧三块文字'],
+                ['`intendedScore` / `lerpScore`', '`Float`', '本周分数（会滚动到目标值）'],
+                ['`difficultySprites`', '`Map<String, FlxSprite>`', '难度小图标'],
+                ['`scoreMessage`', '`String`', '`WEEK SCORE:{0}` 这种模板']
+              ]
+            }
+          },
+          { h: '一个周由哪些文件组成' },
+          { code: { lang: 'ini', title: 'data/weeks/', src: 'weeks.txt                      ← 周的顺序（一行一个文件名）\nweeks/week1.xml                ← 周定义：名字、歌曲、角色、难度图\ncharacters/week1.xml           ← 周列表里站着的那排角色\n# 图片：\nimages/menus/storymenu/weeks/<name>.png\nimages/menus/storymenu/difficulties/<难度>.png' } },
+          {
+            kv: [
+              ['`weeks.txt` 决定什么', '顺序 + 哪些周会出现（不在里面的不显示）'],
+              ['周难度从哪来', '每个 `<song>` 的 `difficulties` 合并'],
+              ['难度锁', '没有对应谱面的难度不会出现'],
+              ['分数从哪读', '`FunkinSave.getWeekHighscore(name, diff)`，打过的周会显示分数']
+            ]
+          },
+          { h: '故事模式里的「强制」行为' },
+          {
+            ul: [
+              "**`lockdown`**：进第一首之后就不能切周、不能回菜单，直到整周打完。想做「一周连续挑战」就开它。",
+              "**结算累加**：`PlayState.campaignScore` / `campaignMisses` 跨歌曲累计（第 29 节有字段表）。",
+              "**完成后回菜单**：整周打完会回 `StoryMenuState` 并刷新分数。"
+            ]
+          },
+          { code: { lang: 'haxe', title: '用脚本改周列表 / 加一周', src: '// 在 StoryMenuState 的状态脚本里\nfunction postCreate() {\n\t// 例：把第二周的显示名改掉\n\tif (weeks.length > 1)\n\t\tweeks[1].name = "我的特制周";\n\n\t// 例：默认选中第三周\n\t// curWeek = 2;\n}\n\n// 换周时的钩子\nfunction onChangeWeek(old:Int, cur:Int) {\n\ttrace("从第 " + old + " 周切到第 " + cur + " 周");\n}' } },
         ]
       },
 
@@ -377,7 +510,41 @@
             ]
           },
           { p: "确认选项时会派发 `onSelectOption`（NameEvent），你可以在里面拦下自定义项。切换选中项时派发 `onChangeItem`。" },
-          { p: "顺带说一句：退出到谱面编辑器这条路径在「编辑器里试玩」时特别有用 —— 改完谱直接暂停跳回去，不用退出重进。" }
+          { p: "顺带说一句：退出到谱面编辑器这条路径在「编辑器里试玩」时特别有用 —— 改完谱直接暂停跳回去，不用退出重进。" },
+          { h: '暂停菜单其实是「一个脚本」' },
+          { p: "`PauseSubState` 有个静态字段 `script`，默认值来自 `Flags.DEFAULT_PAUSE_SCRIPT`。**暂停菜单的每一项、每个按钮，都是这个脚本建出来的** —— 你可以整个换掉。" },
+          { code: { lang: 'ini', title: '换掉整份暂停菜单', src: '# 在 flags.ini 或 modpack.ini 里\n[Flags]\nDEFAULT_PAUSE_SCRIPT="my-pause"\n\n# 然后把脚本放这：\n# data/scripts/my-pause.hx' } },
+          { h: '`PauseSubState` 会给脚本发这些回调' },
+          {
+            table: {
+              head: ['回调', '时机'],
+              rows: [
+                ['`postCreate()`', '菜单建好之后'],
+                ['`update(elapsed)`', '每帧'],
+                ['`onChangeItem(event)`', '上下切换选项'],
+                ['`onSelectOption(event)`', '按下确认'],
+                ['`destroy()`', '关闭时']
+              ]
+            }
+          },
+          { code: { lang: 'haxe', title: '最小自定义暂停脚本', src: 'var items:Array<String> = [];\nvar curSelected:Int = 0;\nvar grp:FlxTypedGroup<Alphabet>;\n\nfunction postCreate() {\n\t// 注意：所有元素都要加到这个 substate 上\n\tvar bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, 0x99000000);\n\tbg.scrollFactor.set();\n\tadd(bg);\n\n\titems = ["继续", "重开", "回主菜单"];\n\t// ……建按钮、定位、加进 grp ……\n}\n\nfunction update(elapsed:Float) {\n\tif (FlxG.keys.justPressed.UP)   changeItem(-1);\n\tif (FlxG.keys.justPressed.DOWN) changeItem(1);\n}\n\nfunction onChangeItem(e) {\n\t// e.value 是新下标\n}\n\nfunction onSelectOption(e) {\n\t// 这里自己决定「选中某项要干嘛」\n}' } },
+          { h: '默认暂停菜单的 6 项' },
+          { p: "默认脚本提供：**Resume / Restart Song / Change Difficulty / Toggle Practice Mode / Options / Exit to menu**。这些名字和顺序来自 `Flags.DEFAULT_PAUSE_ITEMS`（第 42 节）。" },
+          { h: '三个常见的暂停玩法' },
+          {
+            table: {
+              head: ['玩法', '怎么做'],
+              rows: [
+                ['暂停时不可重开', '关掉 Restart 那项，或在 `onSelectOption` 里拦截'],
+                ['暂停时播 BGM', '在 `postCreate` 里 `FlxG.sound.playMusic(...)`，`destroy` 里停'],
+                ['暂停时显示谱面信息', '读 `PlayState.SONG.meta` 画到屏幕上'],
+                ['双人暂停不暂停对手', '不要 `pause()` 整个 PlayState，只冻结玩家侧']
+              ]
+            }
+          },
+          { callout: { kind: 'info', title: 'Gitaroo 彩蛋', text: "有个低概率触发的「Gitaroo」暂停画面（`Flags.GITAROO_CHANCE`，默认 0.1）。测试时把它设 0 就不会突然冒出来。" } },
+          { h: '暂停期间还在跑什么' },
+          { p: "暂停是「叠了一个子状态」，**`PlayState` 本身还在**：它的 `update` 不跑，但音频对象、相机、你已经建好的 Sprite 都还在内存里。所以暂停脚本里可以放心读 `PlayState.instance` 的字段。" },
         ]
       },
 
@@ -665,7 +832,32 @@
               "`Shift+F5`：只重载**全局脚本**（`data/globals/` 与 mod 的 `global.hx`），不动当前状态。改全局钩子时用。"
             ]
           },
-          { p: "顺带一提：F5 在**编辑器里**曾经会破坏编辑器状态，这一版已经修了；但在编辑器里重载仍然要小心未保存的改动。" }
+          { p: "顺带一提：F5 在**编辑器里**曾经会破坏编辑器状态，这一版已经修了；但在编辑器里重载仍然要小心未保存的改动。" },
+          { h: '开发者模式到底开了什么' },
+          { p: "`Options.devMode` 一旦为 `true`，下面这些会**同时**解锁。它不是「一个设置」，是一整套权限。" },
+          {
+            table: {
+              head: ['解锁的东西', '怎么触发', '受 devMode 控制'],
+              rows: [
+                ['游戏内控制台', '`F2`', '是'],
+                ['帧率/统计面板', '`F3`', '是'],
+                ['舞台检查器（点选对象）', '`F4`', '是'],
+                ['重载当前界面', '`F5`', '是'],
+                ['重载全部脚本', '`Shift+F5`', '是'],
+                ['UI 调试器', '`7`（游戏内）', '是'],
+                ['编辑器**菜单入口**', '主菜单里的 Edit', '是'],
+                ['开发者按键分类（4 个）', '设置 → 控制', '是']
+              ]
+            }
+          },
+          { h: '但编辑器还有一条**独立**入口（很多人不知道）' },
+          { p: "在主菜单按 `DEV_ACCESS`（默认键 **`7`**），会直接打开 `EditorPicker` —— 这个判断**只看 `canAccessDebugMenus`，不看 `devMode`**：" },
+          { code: { lang: 'haxe', title: 'MainMenuState 里的真实判断', src: 'if (canAccessDebugMenus) {\n\tif (controls.DEV_ACCESS) {\n\t\tpersistentUpdate = false;\n\t\tpersistentDraw = true;\n\t\topenSubState(new funkin.editors.EditorPicker());\n\t}\n}\n\n// canAccessDebugMenus 的默认值：\n// public var canAccessDebugMenus:Bool = !Flags.DISABLE_EDITORS;' } },
+          { callout: { kind: 'warn', title: '所以「关 devMode」≠「没编辑器」', text: "想让玩家绝对进不去编辑器，**必须** `DISABLE_EDITORS=true`（第 42 节）。只关 `devMode` 只是藏了菜单入口，按 `7` 照样开。" } },
+          { code: { lang: 'ini', title: '发行时到底该关什么', src: '[Flags]\n# 真正关掉编辑器（连按 7 也进不去）\nDISABLE_EDITORS=true\n\n# 关掉启动警告页（想留就删掉这行）\nDISABLE_WARNING_SCREEN=true\n\n# 关掉语言选择（做单语言版本时）\nDISABLE_LANGUAGES=true' } },
+          { h: '用脚本判断「我该不该显示调试信息」' },
+          { code: { lang: 'haxe', src: 'if (Options.devMode) {\n\t// 只有开发者模式才画这些\n\tadd(new FlxText(10, 10, 0, "DEBUG: notes=" + PlayState.instance.notes.length, 12));\n}' } },
+          { callout: { kind: 'info', title: '`trace` 不受 devMode 影响', text: "`trace` 永远输出到 stdout（终端/控制台缓冲区），devMode 只决定**游戏内控制台**看不看得见。要完全静默就用 `#if debug` 包起来。" } },
         ]
       },
 
@@ -755,7 +947,58 @@
           { code: { lang: 'haxe', title: '在控制台里直接执行', src: 'PlayState.instance.health = 2\nPlayState.instance.songScore += 50000\ntrace(PlayState.instance.curSong)\nConductor.bpm = 200' } },
           { p: "切换状态时控制台变量会被重置，这是刻意的 —— 避免拿到已经销毁的对象。" },
           { h: '检查器的边界' },
-          { p: "检查器只能改**已存在的对象**的属性，不能凭空造对象（那是脚本的事）。另外它显示的是运行时对象，所以脚本里 `new` 出来但没 `add` 的东西是找不到的。" }
+          { p: "检查器只能改**已存在的对象**的属性，不能凭空造对象（那是脚本的事）。另外它显示的是运行时对象，所以脚本里 `new` 出来但没 `add` 的东西是找不到的。" },
+          { h: '控制台命令：从注册到执行' },
+          { p: "`ConsoleCommandManager` 只有 5 个方法，但它是 mod 扩展控制台的唯一入口。" },
+          {
+            table: {
+              head: ['方法', '作用'],
+              rows: [
+                ['`registerCommand(cmd)`', '注册一条命令（切 mod 时自动注销）'],
+                ['`unregisterCommand(cmd)`', '手动注销'],
+                ['`getCommand(name)`', '按名字取命令对象'],
+                ['`tryExecute(line)`', '执行一行（返回 `Bool`：找没找到并执行）'],
+                ['`unregisterModdedCommands()`', '清掉所有来自 mod 的命令']
+              ]
+            }
+          },
+          { code: { lang: 'haxe', title: '注册一条自己的命令', src: 'import funkin.backend.system.console.ConsoleCommandManager;\n\n// 命令对象需要 name / description / 执行回调\n// 具体字段以 ConsoleCommandManager 里的命令类型为准\n\nfunction onConsoleReady() {\n\t// 大多数情况你不需要自己注册，直接在脚本里写函数\n\t// 然后在控制台敲函数名反而更快\n}\n\n// 更省事的做法：控制台本身支持直接执行 HScript\n// 敲 myFunc("abc") 就能调你脚本里的函数' } },
+          { h: '控制台里的三个面板' },
+          {
+            table: {
+              head: ['面板', '作用'],
+              rows: [
+                ['日志区', '按级别过滤的日志流（13 个过滤开关，见第 11 节）'],
+                ['输入区', '敲命令或 HScript，`↑`/`↓` 翻历史'],
+                ['检查器', '按 `F4` 打开，能点选场景里的对象看/改属性']
+              ]
+            }
+          },
+          { h: '`F3` 面板到底显示了什么' },
+          { p: "`F3` 的内容由 `Options` 里 6 个开关控制（第 11 节有全表），每一块对应一个来源：" },
+          {
+            table: {
+              head: ['开关', '显示内容'],
+              rows: [
+                ['`fpsCounter`', '总开关（关掉下面全没）'],
+                ['`fpsCounterConductor`', '当前 BPM / 拍 / step / 歌曲位置'],
+                ['`fpsCounterFlixel`', 'Flixel 状态名、对象数、更新/绘制耗时'],
+                ['`fpsCounterSystem`', '系统内存、平台'],
+                ['`fpsCounterAssets`', '已加载资源数量'],
+                ['`fpsCounterStats`', '**`totalDC` / `stageDC`（绘制调用）** —— 做性能优化只看这个']
+              ]
+            }
+          },
+          { h: '检查器（`F4`）的正确用法' },
+          {
+            ol: [
+              "打歌时按 `F4`，进入点选模式。",
+              "点场景里任意一个 Sprite → 右侧列出它的全部字段（`x` `y` `scale` `alpha` `shader`…）。",
+              "改一个值，画面**立刻**跟着变 —— 这是最快的「调数值」方式。",
+              "调好了把数值抄回 XML/脚本，**别指望它保存**。"
+            ]
+          },
+          { callout: { kind: 'tip', title: '改不动的字段', text: "检查器改的是运行时对象，所以像 `animation.curAnim.name` 这种「会被 `update` 每帧覆盖」的字段，改完下一帧就被冲掉了。要持久改，得改 XML 或在脚本里每帧设。" } },
         ]
       },
 

@@ -69,6 +69,7 @@
 │  ├─ js/content-4.js                ← 第四部分内容
 │  ├─ js/content-5.js                ← 第五部分内容（API / 脚本 / 数据 / 过场 / 存档）
 │  ├─ js/content-6.js                ← 第六部分内容（配置与排错）
+│  ├─ audio/bgm.mp3                  ← 背景音乐（CC0，见下文「素材来源」）
 │  ├─ img/                           ← 截图与图标（来自引擎仓库 art/ 与 assets/images/）
 │  └─ video/                         ← 演示视频位（可选，见下文）
 ├─ tools/build-txt.js                ← TXT 生成脚本（改完内容跑一下即可同步）
@@ -213,3 +214,15 @@ assets/video/demo.mp4
 本文档整理于 **2026-10-23**，对应 **Windows Builds #1392**。
 引擎仍在快速迭代，接口、目录、行为都可能变化。
 **本网页（或本版本）不保证对后续更新完全有效** —— 遇到冲突，请以官方 Wiki 与你手上版本的实际表现为准。
+
+---
+
+## 素材来源与许可
+
+| 素材 | 作者 | 许可 |
+|---|---|---|
+| 背景音乐《Chiptune Adventures – Stage 1》 | Juhani Junkala | **CC0**（公有领域，可自由使用） |
+| 页面截图（`assets/img/*`） | Codename Crew | 取自引擎仓库 `art/` 与 `assets/images/`，版权归原作者 |
+
+音乐来源：<https://opengameart.org/content/4-chiptunes-adventure>  
+作者主页：<https://juhanijunkala.com/>

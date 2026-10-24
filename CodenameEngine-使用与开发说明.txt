@@ -497,6 +497,71 @@
       · 写文档：官方 Wiki 是开源的，改起来比写代码门槛低很多。
 
 
+  ■ 制作名单页：其实每个 mod 都能有自己的
+  ─────────────────────────────────────
+
+    CreditsMain 启动时会遍历所有已加载资源库，分别找 config/credits/LIB_<mod>
+    （第 48 节的 LIB_ 机制）。也就是说：你的 mod 可以自带一份制作名单，会和原
+    版并存。
+
+  ┌─ 代码：文件放哪 ［ini］
+  │ mods/my-mod/data/config/credits.xml
+  │ # 引擎读的虚拟路径：config/credits/LIB_my-mod
+  └─ 代码结束
+
+
+  ■ credits.xml 支持三种节点
+  ────────────────────────
+
+  ┌─ 代码：三种写法 ［xml］
+  │ <credits>
+  │ 	<!-- ① 直接拉 GitHub 头像 -->
+  │ 	<github user="zeelingAQ" customName="文档作者" desc="一人制作" size="96" />
+  │ 
+  │ 	<!-- ② 用自己的头像图（放 images/credits/<icon>.png） -->
+  │ 	<credit name="Juhani Junkala" icon="junkala" desc="CC0 音乐"
+  │ 	        url="https://juhanijunkala.com/" size="96" />
+  │ 
+  │ 	<!-- ③ 子分类（点进去是另一屏） -->
+  │ 	<menu name="特别感谢" desc="下面这些人帮了大忙" />
+  │ </credits>
+  └─ 代码结束
+
+    ［属性 ｜ 适用 ｜ 说明］
+      · user ｜ <github> ｜ 必需，GitHub 用户名（头像自动从
+        github.com/<user>.png 拉）
+      · name ｜ <credit> / <menu> ｜ 必需，显示名
+      · desc ｜ 全部 ｜ 副标题，默认 No Description
+      · icon ｜ <credit> ｜ 头像图，相对 images/credits/（找不到就用默认）
+      · url ｜ <credit> ｜ 点一下用浏览器打开
+      · size ｜ 全部 ｜ 头像大小，默认 96
+      · portrait ｜ 全部 ｜ false 时不用头像（纯文字条目）
+      · color ｜ 全部 ｜ 文字颜色
+      · customName ｜ <github> ｜ 显示名和 GitHub 用户名不一致时用
+
+
+  ■ 另外两处「署名」相关
+  ────────────────────
+
+      ▸ data/specialThanks.txt
+          特别感谢的纯文本，一行一个名字
+      ▸ Options.contributors / Options.mainDevs
+          贡献者列表字段（GITHUB_API 开启时从 GitHub 拉）
+      ▸ 你的 mod 本身
+          modpack.ini 的 [Common] AUTHOR 会显示在 Mod 菜单里
+
+    【说明：署名也是「软编码」】
+      不需要改源码就能让自己出现在制作名单里 —— 加个 credits.xml 就行。反过来说，
+      别人做的素材记得在这里署名，这是社区的基本规矩。
+
+
+  ■ 关于「一人制作」
+  ────────────────
+
+    本文档由一人整理：查源码、写条目、做网页、生成 TXT 版本。所以：会有错、会
+    有漏，遇到和官方不一致的地方以官方为准，也欢迎直接提 issue 纠正。
+
+
 ════════════════════════════════════════════════════════════════════════
 　第二部分 · 用它
 ════════════════════════════════════════════════════════════════════════
@@ -566,6 +631,52 @@
     做测试很方便。
 
 
+  ■ 启动流程：从 exe 到主菜单，中间过了几个状态
+  ──────────────────────────────────────
+
+    很多人以为「打开游戏就是主菜单」，其实中间至少经过 3 个状态。搞清这条链，
+    你才知道「我想改的那个界面」到底叫什么。
+
+      1. Main 初始化：读命令行、修工作目录、加载 mods/ 与 addons/、注册语言包。
+      2. MainState：一切的总调度。它决定接下来去哪 —— 有 -song 就直接进打歌，有
+        更新就进更新页。
+      3. TitleState：标题 + 16 拍开场动画，结束后自动跳主菜单（也可按键跳过）。
+      4. MainMenuState：主菜单。从这里进自由游玩 / 故事模式 / 设置 / 制作名单 /
+        Mod 切换。
+      5. 打歌时：PlayState（+ 可选的 DialogueCutscene 过场、PauseSubState 暂停）。
+
+    ［界面 ｜ 类名 ｜ 文件］
+      · 标题 ｜ TitleState ｜ funkin/menus/TitleState.hx
+      · 主菜单 ｜ MainMenuState ｜ funkin/menus/MainMenuState.hx
+      · 自由游玩 ｜ FreeplayState ｜ funkin/menus/FreeplayState.hx
+      · 故事模式 ｜ StoryMenuState ｜ funkin/menus/StoryMenuState.hx
+      · 设置 ｜ OptionsMenu ｜ funkin/options/OptionsMenu.hx
+      · 制作名单 ｜ CreditsMain ｜ funkin/menus/credits/CreditsMain.hx
+      · 打歌 ｜ PlayState ｜ funkin/game/PlayState.hx
+      · 暂停 ｜ PauseSubState ｜ funkin/menus/PauseSubState.hx
+
+    关键：这些类名同时就是「状态脚本」的文件名。想看/改任何一个界面，先看它有
+    没有 data/states/<类名>.hx 这一层。
+
+  ┌─ 代码：一份脚本能挂到哪些界面 ［ini］
+  │ data/states/TitleState.hx      → 只影响标题
+  │ data/states/MainMenuState.hx   → 只影响主菜单
+  │ data/states/PlayState.hx       → 只影响打歌
+  │ data/global.hx                 → 影响所有界面
+  └─ 代码结束
+
+    【建议：换界面不用改源码】
+      想整个换掉某个界面，用 StateRedirects（第 41 节）；想在上面加东西，用状态
+      脚本。两条路都不用碰 Haxe 源码。
+
+
+  ■ 状态切换时发生了什么（为什么脚本里 state 会变）
+  ──────────────────────────────────────
+
+    每次 FlxG.switchState(...) 都会走一次「退出旧状态 → 创建新状态 → 挂脚本」
+    的流程。所以脚本里的 state 是创建那一刻的值，别把它存进 static 里反复用。
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 06 节　标题界面
 　TITLE SCREEN
@@ -617,6 +728,59 @@
 
     这些节点的样式（Skew 的字体、Alphabet 的动画）来自 data/alphabet/*.xml；如
     果某个标题字显示不出来，先去检查字体 XML 里有没有那个字符的 <anim>。
+
+
+  ■ TitleState 的内部结构
+  ─────────────────────
+
+    ［字段 ｜ 类型 ｜ 说明］
+      · curWacky ｜ Array<String> ｜ 当前那一对随机吐槽（introText.txt 里的一行，
+        被 -- 拆成两段）
+      · titleLength ｜ Int ｜ 开场总长（拍），来自 XML 的 <intro length="16">
+      · titleLines ｜ Map<Int, IntroText> ｜ 第几拍 → 该显示什么
+      · titleSprites ｜ Map<String, FlxSprite> ｜ XML 里声明的所有精灵
+      · lines ｜ Array ｜ 实际要画的元素序列
+
+    开源引擎里标题界面的最大不同：它是数据驱动的。
+    data/titlescreen/titlescreen.xml 里的 <intro> 就是时间轴，beat 属性是「第
+    几拍触发」：
+
+  ┌─ 代码 ［xml］
+  │ <intro length="16">
+  │ 	<text beat="1"><line text="ninjamuffin99" /></text>
+  │ 	<text beat="4" />                        <!-- 空 = 清屏 -->
+  │ 	<text beat="7"><sprite path="menus/titlescreen/newgrounds_logo" scale="0.8"/></text>
+  │ 	<text beat="9"><introtext line="1" /></text>   <!-- 引用 introText.txt 的第 1 段 -->
+  │ </intro>
+  └─ 代码结束
+
+
+  ■ 三个常见修改与它们改哪里
+  ────────────────────────
+
+    ［想改 ｜ 改哪］
+      · 换开场文字 ｜ data/titlescreen/introText.txt（一行一条，-- 分两段）
+      · 换开场节奏/顺序 ｜ titlescreen.xml 的 <intro> 里挪 beat
+      · 换字体/logo/加精灵 ｜ titlescreen.xml 的 <sprites> 与 <sprite>
+      · 整个改成自己的动画 ｜ 写 data/states/TitleState.hx 覆盖 create
+
+  ┌─ 代码：用状态脚本加一个自己的标题元素 ［haxe］
+  │ function postCreate() {
+  │ 	// 在原版标题上加一行小字
+  │ 	var tip = new FlxText(0, FlxG.height - 40, FlxG.width, "按 ENTER 开始", 18);
+  │ 	tip.setFormat(Paths.font("vcr.ttf"), 18, 0xFFFFFFFF, CENTER);
+  │ 	add(tip);
+  │ }
+  │ 
+  │ // 在开场结束、跳主菜单之前插一脚
+  │ function onIntroEnd() {
+  │ 	trace("标题动画播完了");
+  │ }
+  └─ 代码结束
+
+    【说明：跳过逻辑】
+      开场可以被按键跳过（Enter / Space 都能跳）。想禁掉或改键，就在状态脚本里改
+      skipIntro 相关字段，或直接拦住按键。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -690,6 +854,73 @@
       · onSelectItem（NameEvent）：确认选择时触发，可以改名从而改变跳转目标，也
         可以 Cancel 掉不让它跳。
       · 对应脚本路径：data/states/MainMenuState.hx（软编码 State 机制）。
+
+
+  ■ 主菜单项是「读文件」读出来的
+  ────────────────────────────
+
+    主菜单不是写死的 5 个按钮，而是读 data/config/menuItems.txt。一行一个菜单
+    项，格式是「id:显示名」。
+
+  ┌─ 代码：data/config/menuItems.txt ［ini］
+  │ story:STORY MODE
+  │ freeplay:FREEPLAY
+  │ options:OPTIONS
+  │ credits:CREDITS
+  │ # 注释行会被忽略
+  └─ 代码结束
+
+      ▸ 冒号左边
+          菜单 id —— 决定按下去跳哪个状态（story → StoryMenuState）
+      ▸ 冒号右边
+          显示名（会过大写化处理）
+      ▸ 想加自己的
+          加一行 mything:MY THING，再用状态脚本拦 onSelect 自己处理
+      ▸ 想删原版的
+          删掉那一行即可；但别把 freeplay 删了，很多人找不到歌
+
+
+  ■ MainMenuState 的可改字段
+  ────────────────────────
+
+    ［字段 ｜ 说明］
+      · canAccessDebugMenus ｜ 能不能打开编辑器/调试菜单（默认 =
+        !Flags.DISABLE_EDITORS）
+      · menuItems ｜ 实际渲染的菜单项数组（改它 = 改按钮）
+      · curSelected ｜ 当前选中项
+      · grpItems ｜ 承载按钮的组（想加装饰元素就 add() 到别处）
+
+
+  ■ Mod 切换：TAB 背后发生了什么
+  ────────────────────────────
+
+      1. TAB → 打开 ModSwitchMenu（一个子状态），列出 mods/ 下所有合法 mod。
+      2. 选中后调 ModsFolder.switchMod(name) —— 它会重建整个 MainState。
+      3. 所以切 mod 之后，之前状态里的一切对象都失效：静态变量、缓存的 Sprite、
+        闭包全不能用。
+      4. Options.lastLoadedMod 会记住你的选择，下次启动自动加载。
+
+  ┌─ 代码：用脚本加一个自己的菜单项 ［haxe］
+  │ // 在 MainMenuState 的状态脚本里
+  │ function postCreate() {
+  │ 	// 在最下面加一行提示（不改按钮）
+  │ 	var hint = new FlxText(20, FlxG.height - 30, 0, "按 TAB 切换 Mod", 14);
+  │ 	hint.setFormat(Paths.font("vcr.ttf"), 14, 0xFF888888);
+  │ 	add(hint);
+  │ }
+  │ 
+  │ // 想在选中某个菜单项时干别的事
+  │ function onSelect(id:String) {
+  │ 	if (id == "credits") {
+  │ 		// 比如改成打开自己的网页
+  │ 		CoolUtil.openURL("https://github.com/zeelingAQ/codename-engine-manual");
+  │ 	}
+  │ }
+  └─ 代码结束
+
+    【注意：menuItems.txt 改坏了会怎样】
+      读不出来就是空菜单（没有按钮可点）。改之前备份，或者先用状态脚本在代码里改
+      menuItems 试效果。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -890,6 +1121,73 @@
       · modpack.ini 的 [Flags] 把周列表模式改成了 override，导致你的周被盖掉。
 
 
+  ■ StoryMenuState 的字段全表
+  ─────────────────────────
+
+    ［字段 ｜ 类型 ｜ 说明］
+      · weeks ｜ Array<WeekData> ｜ 所有周（按 weeks.txt 排序）
+      · weekList ｜ StoryWeeklist ｜ 周的来源管理（原版/mod 合并）
+      · curWeek / curDifficulty ｜ Int ｜ 当前选中的周 / 难度下标
+      · canSelect ｜ Bool ｜ 能不能左右切换（进歌时会被锁）
+      · lockdown ｜ Bool ｜ 锁定后禁止返回（打完这一周前出不去）
+      · weekSprites ｜ FlxTypedGroup<MenuItem> ｜ 右侧的周列表
+      · characterSprites ｜ FlxTypedGroup<FunkinSprite> ｜ 中间站着的周角色
+      · characters ｜ Map<String, WeekCharacter> ｜ 周角色名 → 配置
+      · tracklist / weekTitle / scoreText ｜ FlxText ｜ 右侧三块文字
+      · intendedScore / lerpScore ｜ Float ｜ 本周分数（会滚动到目标值）
+      · difficultySprites ｜ Map<String, FlxSprite> ｜ 难度小图标
+      · scoreMessage ｜ String ｜ WEEK SCORE:{0} 这种模板
+
+
+  ■ 一个周由哪些文件组成
+  ────────────────────
+
+  ┌─ 代码：data/weeks/ ［ini］
+  │ weeks.txt                      ← 周的顺序（一行一个文件名）
+  │ weeks/week1.xml                ← 周定义：名字、歌曲、角色、难度图
+  │ characters/week1.xml           ← 周列表里站着的那排角色
+  │ # 图片：
+  │ images/menus/storymenu/weeks/<name>.png
+  │ images/menus/storymenu/difficulties/<难度>.png
+  └─ 代码结束
+
+      ▸ weeks.txt 决定什么
+          顺序 + 哪些周会出现（不在里面的不显示）
+      ▸ 周难度从哪来
+          每个 <song> 的 difficulties 合并
+      ▸ 难度锁
+          没有对应谱面的难度不会出现
+      ▸ 分数从哪读
+          FunkinSave.getWeekHighscore(name, diff)，打过的周会显示分数
+
+
+  ■ 故事模式里的「强制」行为
+  ────────────────────────
+
+      · lockdown：进第一首之后就不能切周、不能回菜单，直到整周打完。想做「一周连
+        续挑战」就开它。
+      · 结算累加：PlayState.campaignScore / campaignMisses 跨歌曲累计（第 29 节
+        有字段表）。
+      · 完成后回菜单：整周打完会回 StoryMenuState 并刷新分数。
+
+  ┌─ 代码：用脚本改周列表 / 加一周 ［haxe］
+  │ // 在 StoryMenuState 的状态脚本里
+  │ function postCreate() {
+  │ 	// 例：把第二周的显示名改掉
+  │ 	if (weeks.length > 1)
+  │ 		weeks[1].name = "我的特制周";
+  │ 
+  │ 	// 例：默认选中第三周
+  │ 	// curWeek = 2;
+  │ }
+  │ 
+  │ // 换周时的钩子
+  │ function onChangeWeek(old:Int, cur:Int) {
+  │ 	trace("从第 " + old + " 周切到第 " + cur + " 周");
+  │ }
+  └─ 代码结束
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 10 节　暂停菜单
 　PAUSE MENU
@@ -941,6 +1239,92 @@
 
     顺带说一句：退出到谱面编辑器这条路径在「编辑器里试玩」时特别有用 —— 改完谱
     直接暂停跳回去，不用退出重进。
+
+
+  ■ 暂停菜单其实是「一个脚本」
+  ──────────────────────────
+
+    PauseSubState 有个静态字段 script，默认值来自 Flags.DEFAULT_PAUSE_SCRIPT。
+    暂停菜单的每一项、每个按钮，都是这个脚本建出来的 —— 你可以整个换掉。
+
+  ┌─ 代码：换掉整份暂停菜单 ［ini］
+  │ # 在 flags.ini 或 modpack.ini 里
+  │ [Flags]
+  │ DEFAULT_PAUSE_SCRIPT="my-pause"
+  │ 
+  │ # 然后把脚本放这：
+  │ # data/scripts/my-pause.hx
+  └─ 代码结束
+
+
+  ■ PauseSubState 会给脚本发这些回调
+  ────────────────────────────────
+
+    ［回调 ｜ 时机］
+      · postCreate() ｜ 菜单建好之后
+      · update(elapsed) ｜ 每帧
+      · onChangeItem(event) ｜ 上下切换选项
+      · onSelectOption(event) ｜ 按下确认
+      · destroy() ｜ 关闭时
+
+  ┌─ 代码：最小自定义暂停脚本 ［haxe］
+  │ var items:Array<String> = [];
+  │ var curSelected:Int = 0;
+  │ var grp:FlxTypedGroup<Alphabet>;
+  │ 
+  │ function postCreate() {
+  │ 	// 注意：所有元素都要加到这个 substate 上
+  │ 	var bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, 0x99000000);
+  │ 	bg.scrollFactor.set();
+  │ 	add(bg);
+  │ 
+  │ 	items = ["继续", "重开", "回主菜单"];
+  │ 	// ……建按钮、定位、加进 grp ……
+  │ }
+  │ 
+  │ function update(elapsed:Float) {
+  │ 	if (FlxG.keys.justPressed.UP)   changeItem(-1);
+  │ 	if (FlxG.keys.justPressed.DOWN) changeItem(1);
+  │ }
+  │ 
+  │ function onChangeItem(e) {
+  │ 	// e.value 是新下标
+  │ }
+  │ 
+  │ function onSelectOption(e) {
+  │ 	// 这里自己决定「选中某项要干嘛」
+  │ }
+  └─ 代码结束
+
+
+  ■ 默认暂停菜单的 6 项
+  ───────────────────
+
+    默认脚本提供：Resume / Restart Song / Change Difficulty / Toggle Practice
+    Mode / Options / Exit to menu。这些名字和顺序来自
+    Flags.DEFAULT_PAUSE_ITEMS（第 42 节）。
+
+
+  ■ 三个常见的暂停玩法
+  ──────────────────
+
+    ［玩法 ｜ 怎么做］
+      · 暂停时不可重开 ｜ 关掉 Restart 那项，或在 onSelectOption 里拦截
+      · 暂停时播 BGM ｜ 在 postCreate 里 FlxG.sound.playMusic(...)，destroy 里停
+      · 暂停时显示谱面信息 ｜ 读 PlayState.SONG.meta 画到屏幕上
+      · 双人暂停不暂停对手 ｜ 不要 pause() 整个 PlayState，只冻结玩家侧
+
+    【说明：Gitaroo 彩蛋】
+      有个低概率触发的「Gitaroo」暂停画面（Flags.GITAROO_CHANCE，默认 0.1）。测
+      试时把它设 0 就不会突然冒出来。
+
+
+  ■ 暂停期间还在跑什么
+  ──────────────────
+
+    暂停是「叠了一个子状态」，PlayState 本身还在：它的 update 不跑，但音频对象、
+    相机、你已经建好的 Sprite 都还在内存里。所以暂停脚本里可以放心读
+    PlayState.instance 的字段。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -1293,6 +1677,74 @@
     重载仍然要小心未保存的改动。
 
 
+  ■ 开发者模式到底开了什么
+  ──────────────────────
+
+    Options.devMode 一旦为 true，下面这些会同时解锁。它不是「一个设置」，是一
+    整套权限。
+
+    ［解锁的东西 ｜ 怎么触发 ｜ 受 devMode 控制］
+      · 游戏内控制台 ｜ F2 ｜ 是
+      · 帧率/统计面板 ｜ F3 ｜ 是
+      · 舞台检查器（点选对象） ｜ F4 ｜ 是
+      · 重载当前界面 ｜ F5 ｜ 是
+      · 重载全部脚本 ｜ Shift+F5 ｜ 是
+      · UI 调试器 ｜ 7（游戏内） ｜ 是
+      · 编辑器菜单入口 ｜ 主菜单里的 Edit ｜ 是
+      · 开发者按键分类（4 个） ｜ 设置 → 控制 ｜ 是
+
+
+  ■ 但编辑器还有一条独立入口（很多人不知道）
+  ──────────────────────────────────────
+
+    在主菜单按 DEV_ACCESS（默认键 7），会直接打开 EditorPicker —— 这个判断只看
+    canAccessDebugMenus，不看 devMode：
+
+  ┌─ 代码：MainMenuState 里的真实判断 ［haxe］
+  │ if (canAccessDebugMenus) {
+  │ 	if (controls.DEV_ACCESS) {
+  │ 		persistentUpdate = false;
+  │ 		persistentDraw = true;
+  │ 		openSubState(new funkin.editors.EditorPicker());
+  │ 	}
+  │ }
+  │ 
+  │ // canAccessDebugMenus 的默认值：
+  │ // public var canAccessDebugMenus:Bool = !Flags.DISABLE_EDITORS;
+  └─ 代码结束
+
+    【注意：所以「关 devMode」≠「没编辑器」】
+      想让玩家绝对进不去编辑器，必须 DISABLE_EDITORS=true（第 42 节）。只关
+      devMode 只是藏了菜单入口，按 7 照样开。
+
+  ┌─ 代码：发行时到底该关什么 ［ini］
+  │ [Flags]
+  │ # 真正关掉编辑器（连按 7 也进不去）
+  │ DISABLE_EDITORS=true
+  │ 
+  │ # 关掉启动警告页（想留就删掉这行）
+  │ DISABLE_WARNING_SCREEN=true
+  │ 
+  │ # 关掉语言选择（做单语言版本时）
+  │ DISABLE_LANGUAGES=true
+  └─ 代码结束
+
+
+  ■ 用脚本判断「我该不该显示调试信息」
+  ──────────────────────────────────
+
+  ┌─ 代码 ［haxe］
+  │ if (Options.devMode) {
+  │ 	// 只有开发者模式才画这些
+  │ 	add(new FlxText(10, 10, 0, "DEBUG: notes=" + PlayState.instance.notes.length, 12));
+  │ }
+  └─ 代码结束
+
+    【说明：trace 不受 devMode 影响】
+      trace 永远输出到 stdout（终端/控制台缓冲区），devMode 只决定游戏内控制台看
+      不看得见。要完全静默就用 #if debug 包起来。
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 13 节　控制台、检查器与帧率面板
 　CONSOLE / INSPECTOR / FPS
@@ -1396,6 +1848,70 @@
 
     检查器只能改已存在的对象的属性，不能凭空造对象（那是脚本的事）。另外它显示
     的是运行时对象，所以脚本里 new 出来但没 add 的东西是找不到的。
+
+
+  ■ 控制台命令：从注册到执行
+  ────────────────────────
+
+    ConsoleCommandManager 只有 5 个方法，但它是 mod 扩展控制台的唯一入口。
+
+    ［方法 ｜ 作用］
+      · registerCommand(cmd) ｜ 注册一条命令（切 mod 时自动注销）
+      · unregisterCommand(cmd) ｜ 手动注销
+      · getCommand(name) ｜ 按名字取命令对象
+      · tryExecute(line) ｜ 执行一行（返回 Bool：找没找到并执行）
+      · unregisterModdedCommands() ｜ 清掉所有来自 mod 的命令
+
+  ┌─ 代码：注册一条自己的命令 ［haxe］
+  │ import funkin.backend.system.console.ConsoleCommandManager;
+  │ 
+  │ // 命令对象需要 name / description / 执行回调
+  │ // 具体字段以 ConsoleCommandManager 里的命令类型为准
+  │ 
+  │ function onConsoleReady() {
+  │ 	// 大多数情况你不需要自己注册，直接在脚本里写函数
+  │ 	// 然后在控制台敲函数名反而更快
+  │ }
+  │ 
+  │ // 更省事的做法：控制台本身支持直接执行 HScript
+  │ // 敲 myFunc("abc") 就能调你脚本里的函数
+  └─ 代码结束
+
+
+  ■ 控制台里的三个面板
+  ──────────────────
+
+    ［面板 ｜ 作用］
+      · 日志区 ｜ 按级别过滤的日志流（13 个过滤开关，见第 11 节）
+      · 输入区 ｜ 敲命令或 HScript，↑/↓ 翻历史
+      · 检查器 ｜ 按 F4 打开，能点选场景里的对象看/改属性
+
+
+  ■ F3 面板到底显示了什么
+  ─────────────────────
+
+    F3 的内容由 Options 里 6 个开关控制（第 11 节有全表），每一块对应一个来源：
+
+    ［开关 ｜ 显示内容］
+      · fpsCounter ｜ 总开关（关掉下面全没）
+      · fpsCounterConductor ｜ 当前 BPM / 拍 / step / 歌曲位置
+      · fpsCounterFlixel ｜ Flixel 状态名、对象数、更新/绘制耗时
+      · fpsCounterSystem ｜ 系统内存、平台
+      · fpsCounterAssets ｜ 已加载资源数量
+      · fpsCounterStats ｜ totalDC / stageDC（绘制调用） —— 做性能优化只看这个
+
+
+  ■ 检查器（F4）的正确用法
+  ──────────────────────
+
+      1. 打歌时按 F4，进入点选模式。
+      2. 点场景里任意一个 Sprite → 右侧列出它的全部字段（x y scale alpha shader…）。
+      3. 改一个值，画面立刻跟着变 —— 这是最快的「调数值」方式。
+      4. 调好了把数值抄回 XML/脚本，别指望它保存。
+
+    【建议：改不动的字段】
+      检查器改的是运行时对象，所以像 animation.curAnim.name 这种「会被 update 每
+      帧覆盖」的字段，改完下一帧就被冲掉了。要持久改，得改 XML 或在脚本里每帧设。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -5535,6 +6051,66 @@
         读，不是让你改源码。
 
 
+  ■ 按「我想干什么」反查源码
+  ────────────────────────
+
+    读源码最怕「不知道从哪下手」。下面这张表是问题 → 文件的直查表，配合编辑器
+    全文搜索用。
+
+    ［我想知道… ｜ 去哪个文件］
+      · 打歌时发生了什么 ｜ funkin/game/PlayState.hx
+      · 角色怎么唱歌/跳舞 ｜ funkin/game/Character.hx
+      · 舞台怎么摆元素 ｜ funkin/game/Stage.hx
+      · 音符/轨道的数据结构 ｜ funkin/game/Note.hx、Strum.hx、StrumLine.hx
+      · 谱面 JSON 怎么解析 ｜ funkin/backend/chart/Chart.hx、ChartData.hx
+      · 事件怎么定义/触发 ｜ funkin/backend/chart/EventsData.hx
+      · 资源路径怎么找 ｜ funkin/backend/assets/Paths.hx
+      · mod 怎么加载/覆盖 ｜ funkin/backend/assets/ModsFolder.hx
+      · 脚本系统/沙箱 ｜ funkin/backend/scripting/Script.hx、hscript/Config.hx
+      · 配置读取（flags.ini） ｜ funkin/backend/system/Flags.hx
+      · 设置项字段 ｜ funkin/options/Options.hx
+      · 节拍/时间换算 ｜ funkin/backend/system/Conductor.hx
+      · 所有回调名 ｜ 全库搜 scripts.event( / script.call(
+      · 所有事件对象 ｜ funkin/backend/scripting/events/ 整个目录
+
+
+  ■ 三个高效的搜索姿势
+  ──────────────────
+
+      1. 找回调：搜 scripts.event(、script.call(、callOnScripts( —— 能调用脚本的
+        地方都会留痕。
+      2. 找字段：搜 public var 名字 —— 脚本能读的字段基本都是 public。
+      3. 找路径：搜 Paths.image(、Paths.xml( —— 看某个资源是怎么被定位的。
+
+  ┌─ 代码：在 VS Code 里搜（正则） ［ini］
+  │ # 所有会回调脚本的地方
+  │ scripts\.(event|call)\(
+  │ 
+  │ # 所有 public 字段声明
+  │ ^\s*public\s+(static\s+)?var\s+
+  │ 
+  │ # 所有资源路径调用
+  │ Paths\.(image|xml|json|sound|music|script)\(
+  └─ 代码结束
+
+
+  ■ 源码包的目录骨架（只记 5 个）
+  ─────────────────────────────
+
+  ┌─ 代码 ［ini］
+  │ source/
+  │ ├─ funkin/game/        打歌本体（PlayState/Character/Stage/Note）
+  │ ├─ funkin/menus/       所有菜单界面
+  │ ├─ funkin/backend/     引擎底层（资源/谱面/脚本/系统）
+  │ ├─ funkin/editors/     四套编辑器
+  │ └─ hscript/            HScript 解释器补丁（沙箱白名单在这）
+  └─ 代码结束
+
+    【建议：官方 Wiki 仍然要看】
+      本文是「按源码重新整理的中文补充」，不是替代。遇到本文没写的 API，去官方
+      Wiki 的 Modding The Engine 分区；两边对不上时以你手上版本的源码为准。
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 28 节　全局对象与工具类 API
 　GLOBALS & UTILITIES
@@ -6885,6 +7461,81 @@
     自己 new 出来的东西，在 destroy() 里要 destroy() 掉；相机上的 shader 要
     removeShader。不然切歌几次之后内存会一路涨 —— 这是 mod 里最常见的「越玩越
     卡」原因。
+
+
+  ■ Flixel 里真正天天用的 6 个类
+  ────────────────────────────
+
+    ［类 ｜ 是什么 ｜ 最常用］
+      · FlxG ｜ 全局单例：相机、声音、输入、状态、保存 ｜ FlxG.camera FlxG.sound
+        FlxG.switchState() FlxG.save
+      · FlxSprite ｜ 一张图（或纯色块） ｜ loadGraphic makeGraphic
+        animation.add/play setGraphicSize
+      · FlxTween ｜ 补间动画 ｜ FlxTween.tween(obj, {x:100}, 0.5, {ease: ...})
+      · FlxTimer ｜ 定时器 ｜ new FlxTimer().start(2, cb)
+      · FlxText ｜ 文字 ｜ setFormat screenCenter borderStyle
+      · FlxCamera ｜ 相机 ｜ zoom follow flash fade shake
+
+
+  ■ 几个「配方」：直接抄
+  ────────────────────
+
+  ┌─ 代码：淡入 / 淡出 ［haxe］
+  │ // 淡入（透明度 0 → 1）
+  │ spr.alpha = 0;
+  │ FlxTween.tween(spr, {alpha: 1}, 0.4, {ease: FlxEase.quadOut});
+  │ 
+  │ // 淡出后销毁
+  │ FlxTween.tween(spr, {alpha: 0}, 0.3, {
+  │ 	onComplete: function (_) spr.destroy()
+  │ });
+  └─ 代码结束
+
+  ┌─ 代码：补间链（先移再转） ［haxe］
+  │ FlxTween.tween(spr, {x: 400}, 0.5, {
+  │ 	ease: FlxEase.cubeOut,
+  │ 	onComplete: function (_) {
+  │ 		FlxTween.tween(spr, {angle: 90}, 0.3);
+  │ 	}
+  │ });
+  └─ 代码结束
+
+  ┌─ 代码：相机震动 / 闪光 ［haxe］
+  │ camGame.shake(0.02, 0.3);              // 强度, 秒
+  │ camGame.flash(0xFFFFFFFF, 0.25);        // 颜色, 秒
+  └─ 代码结束
+
+  ┌─ 代码：延迟执行（不用写 update 计数） ［haxe］
+  │ new FlxTimer().start(1.5, function (t) {
+  │ 	trace("1.5 秒后执行");
+  │ }, 1);   // 第三个参数 = 循环次数
+  └─ 代码结束
+
+  ┌─ 代码：循环生成 / 清理 ［haxe］
+  │ // 做 8 个粒子
+  │ for (i in 0...8) {
+  │ 	var p = new FlxSprite(spr.x, spr.y).makeGraphic(4, 4, 0xFFFFFFFF);
+  │ 	add(p);
+  │ 	FlxTween.tween(p, {x: p.x + FlxG.random.int(-40, 40), alpha: 0}, 0.6, {
+  │ 		onComplete: function (_) p.destroy()
+  │ 	});
+  │ }
+  └─ 代码结束
+
+
+  ■ OpenFL / Lime 什么时候才需要碰
+  ──────────────────────────────
+
+    ［需求 ｜ 用什么］
+      · 改窗口大小/标题 ｜ openfl.Lib.application.window 或 WindowUtils
+      · 存读二进制 ｜ openfl.utils.ByteArray
+      · 原生剪贴板 ｜ openfl.desktop.Clipboard
+      · 应用程序事件（退出等） ｜ openfl.Lib.application.onExit
+      · 文件对话框 ｜ lime.ui.FileDialog
+
+    【注意：别在每帧里 new FlxPoint / FlxColor】
+      这些是会被 GC 的对象。每帧创建几百个会让帧率抖动。用「复用一个字段」的写法
+      （第 45 节有例子）。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -8519,6 +9170,68 @@
     末尾。
 
 
+  ■ 底层是怎么存键位的
+  ──────────────────
+
+    自定义按键最终落在 PlayerSettings 的三套 Controls 上：solo / player1 /
+    player2。ControlsUtil.loadCustomControls() 会把每个 <control> 的 saveName
+    注册进这三套，并绑定到 FlxActionDigital。
+
+  ┌─ 代码：ControlsUtil 里实际做的事（简化） ［haxe］
+  │ for (name in customNames) {
+  │ 	ControlsUtil.initCustomControl(PlayerSettings.solo.controls, name);
+  │ 	ControlsUtil.initCustomControl(PlayerSettings.player1.controls, name);
+  │ 	ControlsUtil.initCustomControl(PlayerSettings.player2.controls, name);
+  │ }
+  │ 
+  │ // initCustomControl 内部：
+  │ // 建一个 FlxActionDigital，注册进 controls，并记录到 storedCustomControls
+  │ // 玩家改键时 → addKeysToCustomControl(controls, name, keys)
+  └─ 代码结束
+
+    ［函数 ｜ 作用］
+      · initCustomControl(controls, name) ｜ 把一个自定义键注册进某套 Controls
+      · addKeysToCustomControl(controls, name, keys) ｜ 给这个键绑上具体按键
+      · removeKeysFromCustomControl(controls, name, keys) ｜ 解绑
+      · resetCustomControls() ｜ 清空所有自定义键（切 mod 时调）
+      · getPressed/getJustPressed/getJustReleased(controls, name) ｜ 读状态
+
+
+  ■ 三套 Controls 的差别（很容易踩）
+  ────────────────────────────────
+
+    ［套 ｜ 什么时候用］
+      · PlayerSettings.solo ｜ 单人模式（默认）
+      · PlayerSettings.player1 ｜ 双人模式的 P1
+      · PlayerSettings.player2 ｜ 双人模式的 P2（也可能是对手模式）
+
+    写 mod 时最稳的读法是「三套任一按下都算」——除非你明确要区分玩家。
+
+  ┌─ 代码 ［haxe］
+  │ function isDown(name:String):Bool {
+  │ 	return ControlsUtil.getJustPressed(PlayerSettings.solo.controls, name)
+  │ 	    || ControlsUtil.getJustPressed(PlayerSettings.player1.controls, name)
+  │ 	    || ControlsUtil.getJustPressed(PlayerSettings.player2.controls, name);
+  │ }
+  └─ 代码结束
+
+
+  ■ 改键冲突怎么办
+  ──────────────
+
+      · 同一个 saveName 被两个 mod 用 → 后加载的覆盖前者（getName 重复会被后注册
+        的顶掉）。
+      · 和原版键撞了不会报错，但打歌时会同时触发。
+      · Reset Save Data 会连自定义键位一起清空 —— 玩家会来问你「为什么我的键变了」。
+
+  ┌─ 代码：给按键加图标（可选的 menuIcon/menuAnim） ［xml］
+  │ <control menuName="切换 HUD" saveName="MYMOD_TOGGLE_HUD"
+  │          menuIcon="icons/mymod" menuAnim="toggle" />
+  │ 
+  │ <!-- menuIcon 是图集名（相对 images/），menuAnim 是图集里的动画名 -->
+  └─ 代码结束
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 41 节　StateRedirects：把原版界面换成你的
 　STATE REDIRECTS
@@ -9074,6 +9787,78 @@
           让他在快捷方式后加 -v，把终端输出发你
 
 
+  ■ 在 Windows 上做快捷方式（图文步骤）
+  ───────────────────────────────────
+
+      1. 右键 CodenameEngine.exe → 发送到 → 桌面快捷方式。
+      2. 右键快捷方式 → 属性 → 「目标」框末尾加一个空格，然后写参数。
+      3. 例："C:\Games\CNE\CodenameEngine.exe" -song bopeebo hard
+      4. 想固定测试某 mod：... -mod "my-mod" -v
+
+    【注意：引号别删】
+      路径里有空格时，exe 路径必须保留外层引号，参数写在引号外面。写成 "...exe
+      -song bopeebo" 会让整个字符串当成路径。
+
+
+  ■ 参数之间的顺序有关系吗
+  ──────────────────────
+
+    有。-song 会「贪吃」后面不以 - 开头的词作为难度和变体：
+
+  ┌─ 代码：正确 / 错误对照 ［ini］
+  │ # ✓ 歌= bopeebo，难度=hard
+  │ -song bopeebo hard
+  │ 
+  │ # ✓ 歌= bopeebo，难度=hard，变体=erect
+  │ -song bopeebo hard erect
+  │ 
+  │ # ✓ 只有歌名，难度用默认
+  │ -song bopeebo -v
+  │ 
+  │ # ✗ 想指定 -v 但把它吃成难度了（因为 -v 以 - 开头，会被正确跳过）
+  │ -song bopeebo -v        ← 这个其实是对的
+  │ 
+  │ # ✗ 歌名带连字符会被当成参数
+  │ -song my-song           ← my-song 会被解析成 -song 的值，但后续可能错位
+  └─ 代码结束
+
+
+  ■ Linux / macOS 启动
+  ──────────────────
+
+  ┌─ 代码：终端 / .desktop ［bash］
+  │ # 终端
+  │ ./CodenameEngine -song bopeebo hard
+  │ 
+  │ # 想固定工作目录
+  │ cd /opt/cne && ./CodenameEngine -modfolder /opt/cne/mods
+  └─ 代码结束
+
+
+  ■ 四个最常见的「参数不生效」
+  ──────────────────────────
+
+    ［现象 ｜ 原因］
+      · 加了 -mod 但还是加载原版 ｜ mod 名不等于文件夹名（要写文件夹名，不是
+        NAME）
+      · -modfolder 报错退出 ｜ 路径不存在（引擎会 Sys.exit(1)）
+      · -song 进不去歌 ｜ 歌名/难度/变体三者之一拼错，日志里有 Chart ... was not
+        found
+      · -v 没看到更多日志 ｜ 启动器把 stdout 吞了；改用「Show Console」或 -v +
+        原生控制台
+
+  ┌─ 代码：排查时用的最全组合 ［ini］
+  │ CodenameEngine.exe -v -song "当前在改的歌" hard -mod "当前在改的mod"
+  └─ 代码结束
+
+
+  ■ 把这些参数变成「一键」
+  ──────────────────────
+
+    做 mod 时你会反复进同一首歌。建议建三个快捷方式：测试当前歌 / 进谱面编辑器
+    / 干净启动（不加载 mod），比每次点菜单快得多。
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 44 节　日志、崩溃与排查流程
 　LOGS & CRASHES
@@ -9274,6 +10059,84 @@
 
     先让东西能跑、能看，再优化。没有测量的优化都是猜。很多时候帧数低只是因为「
     你开了 4 个全屏 shader」，删掉两个就好了。
+
+
+  ■ 先建立「预算」概念
+  ──────────────────
+
+    60 FPS = 每帧 16.6 ms；120 FPS = 8.3 ms。你的 mod 每帧能做多少事，取决于这
+    个预算怎么花。
+
+    ［帧率 ｜ 每帧预算 ｜ 适合］
+      · 60 ｜ 16.6 ms ｜ 绝大多数 mod
+      · 120 ｜ 8.3 ms ｜ 追求丝滑，开销要砍半
+      · 240 ｜ 4.2 ms ｜ 只适合几乎无特效的场景
+
+
+  ■ 用一段脚本自己测（比肉眼看可靠）
+  ────────────────────────────────
+
+  ┌─ 代码：每 60 帧打印一次内存与对象数 ［haxe］
+  │ var __frames:Int = 0;
+  │ var __lastMem:Float = 0;
+  │ 
+  │ function update(elapsed:Float) {
+  │ 	__frames++;
+  │ 	if (__frames % 60 != 0) return;
+  │ 
+  │ 	var mem = MemoryUtil.getUsedMemory() / (1024 * 1024);   // MB
+  │ 	var delta = mem - __lastMem;
+  │ 	__lastMem = mem;
+  │ 
+  │ 	trace("内存 " + Std.int(mem) + " MB  Δ " + Std.int(delta)
+  │ 		+ "  对象 " + PlayState.instance.members.length);
+  │ }
+  └─ 代码结束
+
+    【建议：看 Δ 而不是看绝对值】
+      绝对值大不一定有问题；每 60 帧都在涨才是泄漏。跑 3 分钟不涨就是健康的。
+
+
+  ■ 绘制调用（DC）到底怎么降
+  ────────────────────────
+
+      1. F3 看 totalDC。打歌时几百算正常，上千就要查。
+      2. 合并同图集：同图集的 Sprite 可以批量绘制，散图不行。
+      3. 减少同屏 Sprite 数量：每个都是候选 DC。
+      4. 别用 flipX 频繁切换：会打断合批（flixel 的限制）。
+      5. 静态背景合并成一张：5 层背景 → 1 张。
+
+
+  ■ 什么时候该怀疑「不是绘制的问题」
+  ────────────────────────────────
+
+    ［现象 ｜ 大概率是］
+      · DC 不高但 FPS 低 ｜ 脚本每帧在跑重活（遍历、字符串拼接、new）
+      · 暂停时也卡 ｜ 有个 FlxTimer/FlxTween 还在跑，或 shader 常驻
+      · 一进歌就掉帧 ｜ 加载期一次性建了太多对象（create 里的循环）
+      · 越打越卡 ｜ 长按/粒子对象没销毁（destroy 漏了）
+      · 切歌后更卡 ｜ 上一个状态的资源没释放，stateScripts 没清
+
+
+  ■ 三个「一行见效」的开关
+  ──────────────────────
+
+  ┌─ 代码：低配玩家救命三连 ［haxe］
+  │ Options.gameplayShaders = false;      // 关掉游戏内 shader
+  │ Options.streamedMusic = true;          // 音乐流式加载
+  │ Options.streamedVocals = true;         // 人声流式加载
+  │ Options.applySettings();
+  └─ 代码结束
+
+
+  ■ 别做的「优化」
+  ──────────────
+
+      · 别把所有东西塞进 static：切歌不释放，内存只涨不降。
+      · 别用 FlxG.state.members.remove() 手动删：容易漏 destroy，用 kill() +
+        destroy()。
+      · 别为了省内存关掉 antialiasing：视觉损失远大于收益。
+      · 别在 update 里 trace：控制台缓冲会吃 CPU（发布版记得删）。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -9909,6 +10772,62 @@
     纯静态：HTML + CSS + 原生 JS，零框架、零 CDN、零统计。内容存在四个 JS 数据
     文件里，按模式裁剪渲染；代码块用自写的分词器逐 token 转义着色；XML 解剖器
     按行配注解。整个目录可以直接放进 GitHub 仓库，用 GitHub Pages 托管。
+
+
+  ■ 术语补充（前面没提到的 14 个）
+  ──────────────────────────────
+
+    ［术语 ｜ 含义］
+      · strum ｜ 一条轨道上的一个箭头接收器（4 键就是 4 个 strum）
+      · strumline ｜ 一整条轨道 = 若干 strum + 一条判定线
+      · playfield ｜ 一组轨道 + 它自己的相机（modchart 里可以有很多个）
+      · hold / sustain ｜ 长按条，sLen 是它的长度（毫秒）
+      · ghost tap ｜ 空按时不扣血（Options.ghostTapping）
+      · offset ｜ 音画偏移，正数 = 判定往后推
+      · variation ｜ 同一首歌的另一套谱面/音频（erect 那种）
+      · BPM change ｜ 谱面中途变速，由事件的 BPM Change 写入 Conductor
+      · step / beat / measure ｜ step = 1/4 拍，beat = 1 拍，measure = 1 小节（4
+        拍）
+      · crochet ｜ 一拍多少毫秒；stepCrochet = 一步多少毫秒
+      · pack ｜ 把脚本/JSON/图钉合成一个文件的容器格式
+      · ndll ｜ 原生动态库（Haxe C++ 侧编译出的 .ndll）
+      · LIB_ ｜ 虚路径前缀，用来「一个文件多个 mod 各存一份」
+      · API_VERSION ｜ mod 声明的接口版本（当前 3），写错会有警告
+
+
+  ■ 本站的键盘操作（再列一次，方便截图）
+  ────────────────────────────────────
+
+    ［按键 ｜ 作用］
+      · 1 2 3 ｜ 简单 / 普通 / 详细
+      · Ctrl+K 或 / ｜ 搜索章节
+      · K / J ｜ 上一章 / 下一章
+      · G 然后 T ｜ 回到顶部
+      · ? ｜ 快捷键面板
+      · M ｜ 背景音乐开关
+      · Esc ｜ 关闭弹层（警示页 / 搜索 / 面板）
+      · Enter ｜ 在警示页上 = 继续留在这里
+
+
+  ■ 出问题时的求助顺序
+  ──────────────────
+
+      1. 先看官方 Wiki：<https://codename-engine.com/wiki/>（唯一权威）
+      2. 再看源码：assets/data/ 里的 XML 是最好的范例（第 27 节有反查表）
+      3. 搜 GitHub Issue：很多「为什么这样设计」的答案在讨论里
+      4. 最后再问人：带上引擎版本 + 完整日志 + 复现步骤（第 44 节有模板）
+
+
+  ■ 版本与免责
+  ──────────
+
+    本页整理于 2026-10-23，对应 Windows Builds #1392 / v1.1.0 / Mod API v3。引
+    擎仍在快速迭代 —— 接口会改名、目录会挪位、某些写法过一两个版本就失效。遇到
+    冲突，以你手上版本的源码与实际表现为准。
+
+    背景音乐：Juhani Junkala《Chiptune Adventures – Stage 1》，CC0（公有领域）
+    授权，可自由使用；来源 OpenGameArt（
+    https://opengameart.org/content/4-chiptunes-adventure）。
 
 
 ════════════════════════════════════════════════════════════════════════

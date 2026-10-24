@@ -1,5 +1,5 @@
 /* ============================================================
-   第五部分：参考手册（API / 脚本 / 数据 / 过场 / 存档）
+   第五部分 · 参考手册
    ============================================================ */
 (function () {
   if (!window.CNE) return;
@@ -158,6 +158,111 @@
             "`F4` 检查器搜一遍，看是不是改了大小写或挪了层级。",
             "去源码里搜（`source/funkin/...` 里 `public var` 一搜就有）——注意这一步只是**读**，不是让你改源码。"
           ]
+        },
+        {
+          "h": "按「我想干什么」反查源码"
+        },
+        {
+          "p": "读源码最怕「不知道从哪下手」。下面这张表是**问题 → 文件**的直查表，配合编辑器全文搜索用。"
+        },
+        {
+          "table": {
+            "head": [
+              "我想知道…",
+              "去哪个文件"
+            ],
+            "rows": [
+              [
+                "打歌时发生了什么",
+                "`funkin/game/PlayState.hx`"
+              ],
+              [
+                "角色怎么唱歌/跳舞",
+                "`funkin/game/Character.hx`"
+              ],
+              [
+                "舞台怎么摆元素",
+                "`funkin/game/Stage.hx`"
+              ],
+              [
+                "音符/轨道的数据结构",
+                "`funkin/game/Note.hx`、`Strum.hx`、`StrumLine.hx`"
+              ],
+              [
+                "谱面 JSON 怎么解析",
+                "`funkin/backend/chart/Chart.hx`、`ChartData.hx`"
+              ],
+              [
+                "事件怎么定义/触发",
+                "`funkin/backend/chart/EventsData.hx`"
+              ],
+              [
+                "资源路径怎么找",
+                "`funkin/backend/assets/Paths.hx`"
+              ],
+              [
+                "mod 怎么加载/覆盖",
+                "`funkin/backend/assets/ModsFolder.hx`"
+              ],
+              [
+                "脚本系统/沙箱",
+                "`funkin/backend/scripting/Script.hx`、`hscript/Config.hx`"
+              ],
+              [
+                "配置读取（flags.ini）",
+                "`funkin/backend/system/Flags.hx`"
+              ],
+              [
+                "设置项字段",
+                "`funkin/options/Options.hx`"
+              ],
+              [
+                "节拍/时间换算",
+                "`funkin/backend/system/Conductor.hx`"
+              ],
+              [
+                "所有回调名",
+                "全库搜 `scripts.event(` / `script.call(`"
+              ],
+              [
+                "所有事件对象",
+                "`funkin/backend/scripting/events/` 整个目录"
+              ]
+            ]
+          }
+        },
+        {
+          "h": "三个高效的搜索姿势"
+        },
+        {
+          "ol": [
+            "**找回调**：搜 `scripts.event(`、`script.call(`、`callOnScripts(` —— 能调用脚本的地方都会留痕。",
+            "**找字段**：搜 `public var 名字` —— 脚本能读的字段基本都是 public。",
+            "**找路径**：搜 `Paths.image(`、`Paths.xml(` —— 看某个资源是怎么被定位的。"
+          ]
+        },
+        {
+          "code": {
+            "lang": "ini",
+            "title": "在 VS Code 里搜（正则）",
+            "src": "# 所有会回调脚本的地方\nscripts\\.(event|call)\\(\n\n# 所有 public 字段声明\n^\\s*public\\s+(static\\s+)?var\\s+\n\n# 所有资源路径调用\nPaths\\.(image|xml|json|sound|music|script)\\("
+          }
+        },
+        {
+          "h": "源码包的目录骨架（只记 5 个）"
+        },
+        {
+          "code": {
+            "lang": "ini",
+            "src": "source/\n├─ funkin/game/        打歌本体（PlayState/Character/Stage/Note）\n├─ funkin/menus/       所有菜单界面\n├─ funkin/backend/     引擎底层（资源/谱面/脚本/系统）\n├─ funkin/editors/     四套编辑器\n└─ hscript/            HScript 解释器补丁（沙箱白名单在这）"
+          }
+        },
+        {
+          "callout": {
+            "kind": "tip",
+            "title": "官方 Wiki 仍然要看",
+            "text": "本文是「按源码重新整理的中文补充」，不是替代。遇到本文没写的 API，去官方 Wiki 的 `Modding The Engine` 分区；两边对不上时**以你手上版本的源码为准**。"
+          }
         }
       ]
     },
@@ -3871,6 +3976,128 @@
         },
         {
           "p": "自己 `new` 出来的东西，在 `destroy()` 里要 `destroy()` 掉；相机上的 shader 要 `removeShader`。不然切歌几次之后内存会一路涨 —— 这是 mod 里最常见的「越玩越卡」原因。"
+        },
+        {
+          "h": "Flixel 里真正天天用的 6 个类"
+        },
+        {
+          "table": {
+            "head": [
+              "类",
+              "是什么",
+              "最常用"
+            ],
+            "rows": [
+              [
+                "`FlxG`",
+                "全局单例：相机、声音、输入、状态、保存",
+                "`FlxG.camera` `FlxG.sound` `FlxG.switchState()` `FlxG.save`"
+              ],
+              [
+                "`FlxSprite`",
+                "一张图（或纯色块）",
+                "`loadGraphic` `makeGraphic` `animation.add/play` `setGraphicSize`"
+              ],
+              [
+                "`FlxTween`",
+                "补间动画",
+                "`FlxTween.tween(obj, {x:100}, 0.5, {ease: ...})`"
+              ],
+              [
+                "`FlxTimer`",
+                "定时器",
+                "`new FlxTimer().start(2, cb)`"
+              ],
+              [
+                "`FlxText`",
+                "文字",
+                "`setFormat` `screenCenter` `borderStyle`"
+              ],
+              [
+                "`FlxCamera`",
+                "相机",
+                "`zoom` `follow` `flash` `fade` `shake`"
+              ]
+            ]
+          }
+        },
+        {
+          "h": "几个「配方」：直接抄"
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "淡入 / 淡出",
+            "src": "// 淡入（透明度 0 → 1）\nspr.alpha = 0;\nFlxTween.tween(spr, {alpha: 1}, 0.4, {ease: FlxEase.quadOut});\n\n// 淡出后销毁\nFlxTween.tween(spr, {alpha: 0}, 0.3, {\n\tonComplete: function (_) spr.destroy()\n});"
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "补间链（先移再转）",
+            "src": "FlxTween.tween(spr, {x: 400}, 0.5, {\n\tease: FlxEase.cubeOut,\n\tonComplete: function (_) {\n\t\tFlxTween.tween(spr, {angle: 90}, 0.3);\n\t}\n});"
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "相机震动 / 闪光",
+            "src": "camGame.shake(0.02, 0.3);              // 强度, 秒\ncamGame.flash(0xFFFFFFFF, 0.25);        // 颜色, 秒"
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "延迟执行（不用写 update 计数）",
+            "src": "new FlxTimer().start(1.5, function (t) {\n\ttrace(\"1.5 秒后执行\");\n}, 1);   // 第三个参数 = 循环次数"
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "循环生成 / 清理",
+            "src": "// 做 8 个粒子\nfor (i in 0...8) {\n\tvar p = new FlxSprite(spr.x, spr.y).makeGraphic(4, 4, 0xFFFFFFFF);\n\tadd(p);\n\tFlxTween.tween(p, {x: p.x + FlxG.random.int(-40, 40), alpha: 0}, 0.6, {\n\t\tonComplete: function (_) p.destroy()\n\t});\n}"
+          }
+        },
+        {
+          "h": "OpenFL / Lime 什么时候才需要碰"
+        },
+        {
+          "table": {
+            "head": [
+              "需求",
+              "用什么"
+            ],
+            "rows": [
+              [
+                "改窗口大小/标题",
+                "`openfl.Lib.application.window` 或 `WindowUtils`"
+              ],
+              [
+                "存读二进制",
+                "`openfl.utils.ByteArray`"
+              ],
+              [
+                "原生剪贴板",
+                "`openfl.desktop.Clipboard`"
+              ],
+              [
+                "应用程序事件（退出等）",
+                "`openfl.Lib.application.onExit`"
+              ],
+              [
+                "文件对话框",
+                "`lime.ui.FileDialog`"
+              ]
+            ]
+          }
+        },
+        {
+          "callout": {
+            "kind": "warn",
+            "title": "别在每帧里 new FlxPoint / FlxColor",
+            "text": "这些是会被 GC 的对象。每帧创建几百个会让帧率抖动。用「复用一个字段」的写法（第 45 节有例子）。"
+          }
         }
       ]
     },

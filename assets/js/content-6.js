@@ -1,5 +1,5 @@
 /* ============================================================
-   第六部分：配置与排错
+   第六部分 · 配与修
    ============================================================ */
 (function () {
   if (!window.CNE) return;
@@ -376,6 +376,100 @@
         },
         {
           "p": "设置 → 控制里的分组是：Notes(4) / UI(9) / Volume(3) / Engine(2) / Developer(4，仅开发者模式)，然后才是各 mod 的分类。你的分类排在这些之后的末尾。"
+        },
+        {
+          "h": "底层是怎么存键位的"
+        },
+        {
+          "p": "自定义按键最终落在 `PlayerSettings` 的三套 `Controls` 上：`solo` / `player1` / `player2`。`ControlsUtil.loadCustomControls()` 会把每个 `<control>` 的 `saveName` 注册进这三套，并绑定到 `FlxActionDigital`。"
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "ControlsUtil 里实际做的事（简化）",
+            "src": "for (name in customNames) {\n\tControlsUtil.initCustomControl(PlayerSettings.solo.controls, name);\n\tControlsUtil.initCustomControl(PlayerSettings.player1.controls, name);\n\tControlsUtil.initCustomControl(PlayerSettings.player2.controls, name);\n}\n\n// initCustomControl 内部：\n// 建一个 FlxActionDigital，注册进 controls，并记录到 storedCustomControls\n// 玩家改键时 → addKeysToCustomControl(controls, name, keys)"
+          }
+        },
+        {
+          "table": {
+            "head": [
+              "函数",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`initCustomControl(controls, name)`",
+                "把一个自定义键注册进某套 Controls"
+              ],
+              [
+                "`addKeysToCustomControl(controls, name, keys)`",
+                "给这个键绑上具体按键"
+              ],
+              [
+                "`removeKeysFromCustomControl(controls, name, keys)`",
+                "解绑"
+              ],
+              [
+                "`resetCustomControls()`",
+                "清空所有自定义键（切 mod 时调）"
+              ],
+              [
+                "`getPressed/getJustPressed/getJustReleased(controls, name)`",
+                "读状态"
+              ]
+            ]
+          }
+        },
+        {
+          "h": "三套 Controls 的差别（很容易踩）"
+        },
+        {
+          "table": {
+            "head": [
+              "套",
+              "什么时候用"
+            ],
+            "rows": [
+              [
+                "`PlayerSettings.solo`",
+                "单人模式（默认）"
+              ],
+              [
+                "`PlayerSettings.player1`",
+                "双人模式的 P1"
+              ],
+              [
+                "`PlayerSettings.player2`",
+                "双人模式的 P2（也可能是对手模式）"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "写 mod 时最稳的读法是「三套任一按下都算」——除非你明确要区分玩家。"
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "src": "function isDown(name:String):Bool {\n\treturn ControlsUtil.getJustPressed(PlayerSettings.solo.controls, name)\n\t    || ControlsUtil.getJustPressed(PlayerSettings.player1.controls, name)\n\t    || ControlsUtil.getJustPressed(PlayerSettings.player2.controls, name);\n}"
+          }
+        },
+        {
+          "h": "改键冲突怎么办"
+        },
+        {
+          "ul": [
+            "同一个 `saveName` 被两个 mod 用 → **后加载的覆盖前者**（`getName` 重复会被后注册的顶掉）。",
+            "和原版键撞了不会报错，但打歌时会同时触发。",
+            "`Reset Save Data` 会连自定义键位一起清空 —— 玩家会来问你「为什么我的键变了」。"
+          ]
+        },
+        {
+          "code": {
+            "lang": "xml",
+            "title": "给按键加图标（可选的 menuIcon/menuAnim）",
+            "src": "<control menuName=\"切换 HUD\" saveName=\"MYMOD_TOGGLE_HUD\"\n         menuIcon=\"icons/mymod\" menuAnim=\"toggle\" />\n\n<!-- menuIcon 是图集名（相对 images/），menuAnim 是图集里的动画名 -->"
+          }
         }
       ]
     },
@@ -1999,6 +2093,89 @@
               "让他在快捷方式后加 `-v`，把终端输出发你"
             ]
           ]
+        },
+        {
+          "h": "在 Windows 上做快捷方式（图文步骤）"
+        },
+        {
+          "ol": [
+            "右键 `CodenameEngine.exe` → 发送到 → 桌面快捷方式。",
+            "右键快捷方式 → 属性 → 「目标」框末尾加一个空格，然后写参数。",
+            "例：`\"C:\\Games\\CNE\\CodenameEngine.exe\" -song bopeebo hard`",
+            "想固定测试某 mod：`... -mod \"my-mod\" -v`"
+          ]
+        },
+        {
+          "callout": {
+            "kind": "warn",
+            "title": "引号别删",
+            "text": "路径里有空格时，exe 路径必须保留外层引号，参数写在**引号外面**。写成 `\"...exe -song bopeebo\"` 会让整个字符串当成路径。"
+          }
+        },
+        {
+          "h": "参数之间的顺序有关系吗"
+        },
+        {
+          "p": "**有**。`-song` 会「贪吃」后面不以 `-` 开头的词作为难度和变体："
+        },
+        {
+          "code": {
+            "lang": "ini",
+            "title": "正确 / 错误对照",
+            "src": "# ✓ 歌= bopeebo，难度=hard\n-song bopeebo hard\n\n# ✓ 歌= bopeebo，难度=hard，变体=erect\n-song bopeebo hard erect\n\n# ✓ 只有歌名，难度用默认\n-song bopeebo -v\n\n# ✗ 想指定 -v 但把它吃成难度了（因为 -v 以 - 开头，会被正确跳过）\n-song bopeebo -v        ← 这个其实是对的\n\n# ✗ 歌名带连字符会被当成参数\n-song my-song           ← my-song 会被解析成 -song 的值，但后续可能错位"
+          }
+        },
+        {
+          "h": "Linux / macOS 启动"
+        },
+        {
+          "code": {
+            "lang": "bash",
+            "title": "终端 / .desktop",
+            "src": "# 终端\n./CodenameEngine -song bopeebo hard\n\n# 想固定工作目录\ncd /opt/cne && ./CodenameEngine -modfolder /opt/cne/mods"
+          }
+        },
+        {
+          "h": "四个最常见的「参数不生效」"
+        },
+        {
+          "table": {
+            "head": [
+              "现象",
+              "原因"
+            ],
+            "rows": [
+              [
+                "加了 `-mod` 但还是加载原版",
+                "mod 名不等于文件夹名（要写文件夹名，不是 `NAME`）"
+              ],
+              [
+                "`-modfolder` 报错退出",
+                "路径不存在（引擎会 `Sys.exit(1)`）"
+              ],
+              [
+                "`-song` 进不去歌",
+                "歌名/难度/变体三者之一拼错，日志里有 `Chart ... was not found`"
+              ],
+              [
+                "`-v` 没看到更多日志",
+                "启动器把 stdout 吞了；改用「Show Console」或 `-v` + 原生控制台"
+              ]
+            ]
+          }
+        },
+        {
+          "code": {
+            "lang": "ini",
+            "title": "排查时用的最全组合",
+            "src": "CodenameEngine.exe -v -song \"当前在改的歌\" hard -mod \"当前在改的mod\""
+          }
+        },
+        {
+          "h": "把这些参数变成「一键」"
+        },
+        {
+          "p": "做 mod 时你会反复进同一首歌。建议建三个快捷方式：**测试当前歌** / **进谱面编辑器** / **干净启动（不加载 mod）**，比每次点菜单快得多。"
         }
       ]
     },
@@ -2390,6 +2567,121 @@
         },
         {
           "p": "先让东西能跑、能看，再优化。**没有测量的优化都是猜**。很多时候帧数低只是因为「你开了 4 个全屏 shader」，删掉两个就好了。"
+        },
+        {
+          "h": "先建立「预算」概念"
+        },
+        {
+          "p": "60 FPS = 每帧 16.6 ms；120 FPS = 8.3 ms。你的 mod 每帧能做多少事，取决于这个预算怎么花。"
+        },
+        {
+          "table": {
+            "head": [
+              "帧率",
+              "每帧预算",
+              "适合"
+            ],
+            "rows": [
+              [
+                "60",
+                "16.6 ms",
+                "绝大多数 mod"
+              ],
+              [
+                "120",
+                "8.3 ms",
+                "追求丝滑，开销要砍半"
+              ],
+              [
+                "240",
+                "4.2 ms",
+                "只适合几乎无特效的场景"
+              ]
+            ]
+          }
+        },
+        {
+          "h": "用一段脚本自己测（比肉眼看可靠）"
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "每 60 帧打印一次内存与对象数",
+            "src": "var __frames:Int = 0;\nvar __lastMem:Float = 0;\n\nfunction update(elapsed:Float) {\n\t__frames++;\n\tif (__frames % 60 != 0) return;\n\n\tvar mem = MemoryUtil.getUsedMemory() / (1024 * 1024);   // MB\n\tvar delta = mem - __lastMem;\n\t__lastMem = mem;\n\n\ttrace(\"内存 \" + Std.int(mem) + \" MB  Δ \" + Std.int(delta)\n\t\t+ \"  对象 \" + PlayState.instance.members.length);\n}"
+          }
+        },
+        {
+          "callout": {
+            "kind": "tip",
+            "title": "看 Δ 而不是看绝对值",
+            "text": "绝对值大不一定有问题；**每 60 帧都在涨**才是泄漏。跑 3 分钟不涨就是健康的。"
+          }
+        },
+        {
+          "h": "绘制调用（DC）到底怎么降"
+        },
+        {
+          "ol": [
+            "F3 看 `totalDC`。打歌时几百算正常，上千就要查。",
+            "**合并同图集**：同图集的 Sprite 可以批量绘制，散图不行。",
+            "**减少同屏 Sprite 数量**：每个都是候选 DC。",
+            "**别用 `flipX` 频繁切换**：会打断合批（flixel 的限制）。",
+            "**静态背景合并成一张**：5 层背景 → 1 张。"
+          ]
+        },
+        {
+          "h": "什么时候该怀疑「不是绘制的问题」"
+        },
+        {
+          "table": {
+            "head": [
+              "现象",
+              "大概率是"
+            ],
+            "rows": [
+              [
+                "DC 不高但 FPS 低",
+                "脚本每帧在跑重活（遍历、字符串拼接、`new`）"
+              ],
+              [
+                "暂停时也卡",
+                "有个 `FlxTimer`/`FlxTween` 还在跑，或 shader 常驻"
+              ],
+              [
+                "一进歌就掉帧",
+                "加载期一次性建了太多对象（`create` 里的循环）"
+              ],
+              [
+                "越打越卡",
+                "长按/粒子对象没销毁（`destroy` 漏了）"
+              ],
+              [
+                "切歌后更卡",
+                "上一个状态的资源没释放，`stateScripts` 没清"
+              ]
+            ]
+          }
+        },
+        {
+          "h": "三个「一行见效」的开关"
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "低配玩家救命三连",
+            "src": "Options.gameplayShaders = false;      // 关掉游戏内 shader\nOptions.streamedMusic = true;          // 音乐流式加载\nOptions.streamedVocals = true;         // 人声流式加载\nOptions.applySettings();"
+          }
+        },
+        {
+          "h": "别做的「优化」"
+        },
+        {
+          "ul": [
+            "**别把所有东西塞进 `static`**：切歌不释放，内存只涨不降。",
+            "**别用 `FlxG.state.members.remove()` 手动删**：容易漏 destroy，用 `kill()` + `destroy()`。",
+            "**别为了省内存关掉 `antialiasing`**：视觉损失远大于收益。",
+            "**别在 `update` 里 `trace`**：控制台缓冲会吃 CPU（发布版记得删）。"
+          ]
         }
       ]
     },
@@ -3615,6 +3907,140 @@
         },
         {
           "p": "纯静态：HTML + CSS + 原生 JS，零框架、零 CDN、零统计。内容存在四个 JS 数据文件里，按模式裁剪渲染；代码块用自写的分词器逐 token 转义着色；XML 解剖器按行配注解。整个目录可以直接放进 GitHub 仓库，用 GitHub Pages 托管。"
+        },
+        {
+          "h": "术语补充（前面没提到的 14 个）"
+        },
+        {
+          "table": {
+            "head": [
+              "术语",
+              "含义"
+            ],
+            "rows": [
+              [
+                "**strum**",
+                "一条轨道上的**一个箭头接收器**（4 键就是 4 个 strum）"
+              ],
+              [
+                "**strumline**",
+                "一整条轨道 = 若干 strum + 一条判定线"
+              ],
+              [
+                "**playfield**",
+                "一组轨道 + 它自己的相机（modchart 里可以有很多个）"
+              ],
+              [
+                "**hold / sustain**",
+                "长按条，`sLen` 是它的长度（毫秒）"
+              ],
+              [
+                "**ghost tap**",
+                "空按时不扣血（`Options.ghostTapping`）"
+              ],
+              [
+                "**offset**",
+                "音画偏移，正数 = 判定往后推"
+              ],
+              [
+                "**variation**",
+                "同一首歌的另一套谱面/音频（`erect` 那种）"
+              ],
+              [
+                "**BPM change**",
+                "谱面中途变速，由事件的 `BPM Change` 写入 `Conductor`"
+              ],
+              [
+                "**step / beat / measure**",
+                "step = 1/4 拍，beat = 1 拍，measure = 1 小节（4 拍）"
+              ],
+              [
+                "**crochet**",
+                "一拍多少毫秒；`stepCrochet` = 一步多少毫秒"
+              ],
+              [
+                "**pack**",
+                "把脚本/JSON/图钉合成一个文件的容器格式"
+              ],
+              [
+                "**ndll**",
+                "原生动态库（Haxe C++ 侧编译出的 `.ndll`）"
+              ],
+              [
+                "**LIB_**",
+                "虚路径前缀，用来「一个文件多个 mod 各存一份」"
+              ],
+              [
+                "**API_VERSION**",
+                "mod 声明的接口版本（当前 3），写错会有警告"
+              ]
+            ]
+          }
+        },
+        {
+          "h": "本站的键盘操作（再列一次，方便截图）"
+        },
+        {
+          "table": {
+            "head": [
+              "按键",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`1` `2` `3`",
+                "简单 / 普通 / 详细"
+              ],
+              [
+                "`Ctrl+K` 或 `/`",
+                "搜索章节"
+              ],
+              [
+                "`K` / `J`",
+                "上一章 / 下一章"
+              ],
+              [
+                "`G` 然后 `T`",
+                "回到顶部"
+              ],
+              [
+                "`?`",
+                "快捷键面板"
+              ],
+              [
+                "`M`",
+                "背景音乐开关"
+              ],
+              [
+                "`Esc`",
+                "关闭弹层（警示页 / 搜索 / 面板）"
+              ],
+              [
+                "`Enter`",
+                "在警示页上 = 继续留在这里"
+              ]
+            ]
+          }
+        },
+        {
+          "h": "出问题时的求助顺序"
+        },
+        {
+          "ol": [
+            "**先看官方 Wiki**：<https://codename-engine.com/wiki/>（唯一权威）",
+            "**再看源码**：`assets/data/` 里的 XML 是最好的范例（第 27 节有反查表）",
+            "**搜 GitHub Issue**：很多「为什么这样设计」的答案在讨论里",
+            "**最后再问人**：带上引擎版本 + 完整日志 + 复现步骤（第 44 节有模板）"
+          ]
+        },
+        {
+          "h": "版本与免责"
+        },
+        {
+          "p": "本页整理于 **2026-10-23**，对应 **Windows Builds #1392 / v1.1.0 / Mod API v3**。引擎仍在快速迭代 —— 接口会改名、目录会挪位、某些写法过一两个版本就失效。**遇到冲突，以你手上版本的源码与实际表现为准。**"
+        },
+        {
+          "p": "背景音乐：**Juhani Junkala《Chiptune Adventures – Stage 1》**，CC0（公有领域）授权，可自由使用；来源 [OpenGameArt](https://opengameart.org/content/4-chiptunes-adventure)。"
         }
       ]
     }

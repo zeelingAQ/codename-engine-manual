@@ -1069,3 +1069,87 @@
     init();
   }
 })();
+
+/* ============================================================
+   背景音乐：CC0 素材（Juhani Junkala / Chiptune Adventures）
+   - 首次必须由用户手势触发（浏览器自动播放策略）
+   - 默认开，可记忆，可 M 键切换
+   ============================================================ */
+(function bgmPlayer() {
+  var audio = document.getElementById('bgm');
+  var btn = document.getElementById('btnBgm');
+  if (!audio || !btn) return;
+
+  var KEY = 'cne-bgm';
+  var TARGET = 0.22;           // 目标音量
+  var started = false;
+  var fadeTimer = null;
+
+  function wantOn() {
+    try { return localStorage.getItem(KEY) !== 'off'; } catch (e) { return true; }
+  }
+  function remember(on) {
+    try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) {}
+  }
+  function paint() {
+    var on = !audio.paused && !audio.ended;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('is-on', on);
+    btn.title = on ? '背景音乐：开（M 关闭）' : '背景音乐：关（M 开启）';
+  }
+  function fadeTo(to, ms) {
+    if (fadeTimer) clearInterval(fadeTimer);
+    var from = audio.volume;
+    var steps = Math.max(1, Math.round(ms / 40));
+    var i = 0;
+    fadeTimer = setInterval(function () {
+      i++;
+      audio.volume = Math.max(0, Math.min(1, from + (to - from) * (i / steps)));
+      if (i >= steps) { clearInterval(fadeTimer); fadeTimer = null; }
+    }, 40);
+  }
+  function play() {
+    if (!audio.paused) return;
+    audio.volume = 0;
+    var p = audio.play();
+    if (p && p.catch) p.catch(function () { paint(); });
+    fadeTo(TARGET, 1200);
+    started = true;
+    paint();
+  }
+  function stop() {
+    if (audio.paused) return;
+    fadeTo(0, 300);
+    setTimeout(function () { audio.pause(); paint(); }, 320);
+  }
+
+  btn.addEventListener('click', function () {
+    if (audio.paused) { remember(true); play(); }
+    else { remember(false); stop(); }
+  });
+
+  // 用户手势：关掉警示弹窗时开始播放
+  var gateStay = document.getElementById('gateStay');
+  if (gateStay) gateStay.addEventListener('click', function () { if (wantOn()) setTimeout(play, 260); });
+  var gateBtn = document.getElementById('gateWiki');
+  if (gateBtn) gateBtn.addEventListener('click', function () { if (wantOn()) setTimeout(play, 260); });
+
+  // M 键切换（不在输入框里时）
+  document.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'm' || e.key === 'M') {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault();
+      btn.click();
+    }
+  });
+
+  // 关掉过一次就不再自动播
+  audio.addEventListener('pause', paint);
+  audio.addEventListener('playing', paint);
+
+  paint();
+  // 如果用户之前手动关过，保持关闭；否则等弹窗手势
+  if (!document.body.classList.contains('is-gated') && wantOn()) play();
+})();

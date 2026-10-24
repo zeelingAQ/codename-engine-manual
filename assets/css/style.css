@@ -416,8 +416,10 @@ kbd {
   border-radius: 20px;
   overflow: hidden;
   background:
-    linear-gradient(100deg, rgba(6, 7, 11, .97) 0%, rgba(6, 7, 11, .9) 46%, rgba(10, 6, 12, .72) 100%),
-    url("../img/stageback.png") center/cover no-repeat;
+    radial-gradient(120% 120% at 50% 0%, rgba(20, 14, 22, .55), rgba(6, 7, 11, .86) 70%),
+    linear-gradient(100deg, rgba(6, 7, 11, .74) 0%, rgba(7, 7, 12, .62) 46%, rgba(12, 6, 14, .50) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
   padding: 34px 34px 30px;
   margin-bottom: 30px;
 }
@@ -1177,3 +1179,44 @@ body.dev-unlocked .badge-dev { display: inline-block; }
 }
 .footer__bgm { opacity: .62; font-size: .92em; }
 @media print { .iconbtn#btnBgm { display: none; } }
+
+/* ============================================================
+   因果线背景
+   ============================================================ */
+#causal {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  display: block;
+}
+/* 有了因果线，网格压淡一点，别打架 */
+body::before { opacity: .42; }
+/* 光晕也收一点，让线更清楚 */
+body::after { opacity: .78; }
+
+@media (prefers-reduced-motion: reduce) {
+  #causal { opacity: .55; }
+}
+@media print {
+  #causal { display: none; }
+}
+
+/* 因果线模式下：网格退场，只留线 + 极淡暗角 */
+body::before { display: none; }
+body::after {
+  background:
+    radial-gradient(60% 45% at 12% -8%, rgba(194, 75, 153, .10), transparent 70%),
+    radial-gradient(55% 40% at 88% -4%, rgba(56, 217, 242, .09), transparent 72%),
+    radial-gradient(70% 55% at 50% 110%, rgba(6, 7, 11, .55), transparent 70%);
+}
+
+/* 交互层：只画「鼠标因果线」，浮在内容之上、UI 之下 */
+#causal-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  display: block;
+}
+@media print { #causal-fx { display: none; } }

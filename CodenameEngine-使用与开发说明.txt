@@ -6034,6 +6034,37 @@
       检查器为准。
 
 
+  ■ 完整示例：一个「探路脚本」
+  ──────────────────────────
+
+    不知道某个字段叫什么时，先跑这个。它把当前环境能查到的信息全打印一遍 —— 复
+    制进 songs/<歌>/scripts/env.hx 就能用。
+
+  ┌─ 代码：songs/mysong/scripts/env.hx ［haxe］
+  │ function postCreate() {
+  │ 	trace("========== 环境 ==========");
+  │ 	trace("引擎   " + engine.name + " #" + engine.commit + " (" + engine.hash + ")");
+  │ 	trace("歌曲   " + PlayState.SONG.meta.name + "  [" + PlayState.difficulty + "]");
+  │ 	trace("舞台   " + PlayState.SONG.stage + "   流速 " + PlayState.SONG.scrollSpeed);
+  │ 	trace("BPM    " + Conductor.bpm + "   拍号 " + Conductor.beatsPerMeasure + "/" + Conductor.stepsPerBeat);
+  │ 	trace("一拍   " + Conductor.crochet + " ms   一步 " + Conductor.stepCrochet + " ms");
+  │ 	trace("轨道   " + PlayState.instance.strumLines.length + " 条");
+  │ 
+  │ 	// 逐条轨道统计
+  │ 	for (line in PlayState.instance.strumLines) {
+  │ 		trace("  轨道 type=" + line.data.type + " 音符 " + line.notes.length);
+  │ 	}
+  │ 
+  │ 	trace("========== 按键 ==========");
+  │ 	trace("F2 控制台 / F3 帧率 / F4 检查器 / F5 重载");
+  │ }
+  └─ 代码结束
+
+    【建议：为什么先跑这个】
+      trace 的输出带文件名:行号。你看到的那一行就是「引擎认为你在哪」，后面所有
+      调试都靠它定位。
+
+
   ■ ⑤ 官方 API 文档怎么用
   ─────────────────────
 
@@ -6296,6 +6327,41 @@
 
     改完记得 Options.save()；有些项要 Options.applySettings() 才立刻生效（音量、
     帧率、键位）。
+
+
+  ■ 完整示例：把工具类用起来
+  ────────────────────────
+
+    下面这段把 Paths / CoolUtil / Conductor / Options 各用了一次 —— 每一行都是
+    可运行的真实调用。
+
+  ┌─ 代码：songs/mysong/scripts/tools.hx ［haxe］
+  │ function postCreate() {
+  │ 	// ① Paths：查资源到底解析到哪
+  │ 	trace("BF 图集 → " + Paths.image("characters/bf"));
+  │ 	trace("舞台 XML → " + Paths.xml("stages/stage"));
+  │ 
+  │ 	// ② Paths.soundRandom：随机音效（准备 hit1/hit2/hit3.ogg）
+  │ 	// FlxG.sound.play(Paths.soundRandom("hit"));
+  │ 
+  │ 	// ③ Conductor：时间换算
+  │ 	trace("8 拍 = " + (Conductor.crochet * 8) + " ms");
+  │ 
+  │ 	// ④ Options：读写设置（记得存盘）
+  │ 	trace("下滚 " + Options.downscroll + "  音乐音量 " + Options.volumeMusic);
+  │ 
+  │ 	// ⑤ CoolUtil：写文件（会自动建目录）
+  │ 	CoolUtil.safeSaveFile("my-mod/last.txt", PlayState.SONG.meta.name);
+  │ 
+  │ 	// ⑥ CoolUtil：开链接
+  │ 	// CoolUtil.openURL("https://codename-engine.com/wiki/");
+  │ }
+  │ 
+  │ // ② 的另一种用法：按拍播放
+  │ function beatHit(curBeat:Int) {
+  │ 	if (curBeat % 4 == 0) FlxG.sound.play(Paths.soundRandom("hit"));
+  │ }
+  └─ 代码结束
 
 
   ■ ⑥ 需要 import 的常用工具类
@@ -6695,6 +6761,45 @@
       · sprTracker / sprTrackerOffset ｜ 跟随目标
 
 
+  ■ 完整示例：直接操作游戏对象
+  ──────────────────────────
+
+    一段脚本演示「打歌时能改什么」。注意用到的字段都是 public 的（否则脚本读不
+    到）。
+
+  ┌─ 代码：songs/mysong/scripts/objects.hx ［haxe］
+  │ function postCreate() {
+  │ 	var g = PlayState.instance;
+  │ 
+  │ 	// ---- 角色 ----
+  │ 	g.boyfriend.playAnim("hey", true);      // 强制播动画（true = 打断当前）
+  │ 	g.dad.flipX = !g.dad.flipX;             // 翻转对手
+  │ 	g.gf.visible = false;                   // 藏起来
+  │ 
+  │ 	// ---- 舞台元素 ----
+  │ 	var bg = g.stage.getSprite("bg");       // 按 name 取舞台精灵
+  │ 	if (bg != null) bg.alpha = 0.6;
+  │ 
+  │ 	// ---- 相机 ----
+  │ 	g.camHUD.visible = false;               // 藏掉整个 HUD
+  │ 	g.camGame.zoom = 1.1;
+  │ 
+  │ 	// ---- 数值（这些是 setter，直接赋值就会触发内部逻辑）----
+  │ 	g.health = 1.5;
+  │ 	trace("combo=" + g.combo + " misses=" + g.misses + " songScore=" + g.songScore);
+  │ }
+  │ 
+  │ // 每拍把角色弹一下
+  │ function beatHit(curBeat:Int) {
+  │ 	PlayState.instance.gf.playAnim("danceLeft", true);
+  │ }
+  └─ 代码结束
+
+    【注意：两个「看起来能改其实不能」的】
+      ① PlayState.instance.score 不存在，分数在 songScore。② notes 不在
+      PlayState 上，要按 strumLines 遍历，每条轨道有 notes（NoteGroup）。
+
+
   ■ ⑦ 那些「改了会被覆盖」的字段
   ────────────────────────────
 
@@ -6942,6 +7047,48 @@
     【说明：不存在的回调】
       没有 onCreate、onDestroy、onEndSong、onPause、onCountdownTick。对应物是
       create / destroy / onSongEnd / onGamePause / onCountdown。
+
+
+  ■ 完整示例：把所有常用回调写成骨架
+  ────────────────────────────────
+
+    复制这份文件，只留你要用的，其余删掉。它同时也是「回调签名速查」—— 参数名
+    和类型都在这里。
+
+  ┌─ 代码：songs/mysong/scripts/callbacks.hx ［haxe］
+  │ // ===== 生命周期 =====
+  │ function create()        { trace("create"); }
+  │ function postCreate()    { trace("postCreate"); }
+  │ function destroy()       { trace("destroy"); }
+  │ 
+  │ // ===== 每帧 / 每拍 =====
+  │ function update(elapsed:Float) { }
+  │ function beatHit(curBeat:Int)  { }
+  │ function stepHit(curStep:Int)  { }
+  │ 
+  │ // ===== 打歌判定 =====
+  │ function onNoteHit(e) {
+  │ 	// e.note / e.rating / e.score / e.accuracy / e.healthGain / e.player …
+  │ }
+  │ function onNoteMiss(e) {
+  │ 	// e.note / e.player …
+  │ }
+  │ 
+  │ // ===== 输入 =====
+  │ function onKeyPress(key)   { }
+  │ function onKeyRelease(key) { }
+  │ 
+  │ // ===== 暂停 =====
+  │ function onPause()  { }
+  │ function onResume() { }
+  │ 
+  │ // ===== 通用事件（引擎所有 event("xxx") 都会进这里）=====
+  │ function onEvent(name:String, value1:Dynamic, value2:Dynamic) { }
+  └─ 代码结束
+
+    【说明：签名以第 30 节全表为准】
+      上面只列了最常用的。50 多个回调的完整名单（含「资源提供者钩子」）在本节上
+      面那张表里。
 
 
   ■ ⑧ 回调执行顺序（一次打歌）
@@ -7207,6 +7354,66 @@
       要留数据，把字段值复制出来。
 
 
+  ■ 完整示例：拦截并改写一次判定
+  ────────────────────────────
+
+    NoteHitEvent 上的字段直接影响结果 —— 改它就等于改游戏。下面这个例子：全连
+    不扣血、判定永远 SICK、不显示溅射。
+
+  ┌─ 代码：songs/mysong/scripts/judge.hx ［haxe］
+  │ function onNoteHit(e) {
+  │ 	// 只改玩家这一侧，别动对手
+  │ 	if (!e.player) return;
+  │ 
+  │ 	// ① 判定文字与分数
+  │ 	e.rating   = "sick";
+  │ 	e.score    = 350;
+  │ 	e.accuracy = 1.0;
+  │ 
+  │ 	// ② 回血（默认是加血，改成大幅回血）
+  │ 	e.healthGain = 0.1;
+  │ 
+  │ 	// ③ 不计数 / 不加连击
+  │ 	// e.countScore = false;
+  │ 	// e.countAsCombo = false;
+  │ 
+  │ 	// ④ 不播溅射
+  │ 	e.showSplash = false;
+  │ 
+  │ 	// ⑤ 换角色动画后缀
+  │ 	// e.animSuffix = "-alt";
+  │ 
+  │ 	// ⑥ 只显示判定不显示连击
+  │ 	e.displayCombo = false;
+  │ }
+  │ 
+  │ function onNoteMiss(e) {
+  │ 	// Miss 时静音人声（默认就是 true，这里演示怎么关）
+  │ 	// e.unmuteVocals = false;
+  │ }
+  └─ 代码结束
+
+
+  ■ 另一类：改引擎行为（不是判定）
+  ──────────────────────────────
+
+  ┌─ 代码：改相机与溅射 ［haxe］
+  │ // 拦下溅射，改它的大小
+  │ function onSplashShow(e) {
+  │ 	if (e.splash != null) {
+  │ 		e.splash.scale.set(1.4, 1.4);
+  │ 		e.splash.updateHitbox();
+  │ 	}
+  │ }
+  │ 
+  │ // 拦下打开子状态（比如禁止暂停）
+  │ function onOpenSubState(sub) {
+  │ 	if (Std.isOfType(sub, PauseSubState))
+  │ 		sub.close();   // 直接关掉，等于禁暂停
+  │ }
+  └─ 代码结束
+
+
   ■ ⑥ cancel(afterScripts) 到底取消什么
   ───────────────────────────────────
 
@@ -7427,6 +7634,54 @@
   │ FlxMath.bound(v, 0, 1);      // 夹取
   │ FlxMath.isOdd(n);
   │ FlxMath.remapToRange(v, 0, 10, 0, 100);  // 区间映射
+  └─ 代码结束
+
+
+  ■ 完整示例：一段「过场式」视觉演出
+  ────────────────────────────────
+
+    把补间、定时器、相机、粒子缝在一起 —— 这正是「不用 modchart 也能做出效果」
+    的写法。
+
+  ┌─ 代码：songs/mysong/scripts/intro-fx.hx ［haxe］
+  │ function postCreate() {
+  │ 	var g = PlayState.instance;
+  │ 
+  │ 	// ① 开场：HUD 从透明淡入
+  │ 	g.camHUD.alpha = 0;
+  │ 	FlxTween.tween(g.camHUD, {alpha: 1}, 0.8, {ease: FlxEase.quadOut});
+  │ 
+  │ 	// ② 相机轻推
+  │ 	g.camGame.zoom = 0.9;
+  │ 	FlxTween.tween(g.camGame, {zoom: 1.0}, 1.2, {ease: FlxEase.cubeOut});
+  │ 
+  │ 	// ③ 1.5 秒后闪一下
+  │ 	new FlxTimer().start(1.5, function (_) {
+  │ 		g.camGame.flash(0xFFFFFFFF, 0.2);
+  │ 	});
+  │ }
+  │ 
+  │ // 每次满小节震一下
+  │ function beatHit(curBeat:Int) {
+  │ 	if (curBeat % 4 == 0) {
+  │ 		var g = PlayState.instance;
+  │ 		g.camGame.shake(0.006, 0.12);
+  │ 	}
+  │ }
+  │ 
+  │ // 打中时撒 3 个粒子
+  │ function onNoteHit(e) {
+  │ 	if (!e.player || !e.showSplash) return;
+  │ 	for (i in 0...3) {
+  │ 		var p = new FlxSprite(e.note.x, e.note.y).makeGraphic(3, 3, 0xFFFFFFFF);
+  │ 		PlayState.instance.add(p);
+  │ 		FlxTween.tween(p, {
+  │ 			x: p.x + FlxG.random.int(-30, 30),
+  │ 			y: p.y + FlxG.random.int(-20, 20),
+  │ 			alpha: 0
+  │ 		}, 0.35, { onComplete: function (_) p.destroy() });
+  │ 	}
+  │ }
   └─ 代码结束
 
 
@@ -7694,6 +7949,68 @@
         配对、少分号）。
 
 
+  ■ 完整示例：三层脚本各管什么
+  ──────────────────────────
+
+    一个 mod 通常有三种脚本，职责别混。下面是同一首歌的三份文件，演示它们的分
+    工与加载顺序。
+
+  ┌─ 代码：文件树 ［ini］
+  │ mods/my-mod/
+  │ ├─ data/global.hx                 ← 全局：每个界面都跑（慎用）
+  │ ├─ data/stages/mystage.hx         ← 舞台脚本：跟舞台走
+  │ └─ songs/mysong/scripts/main.hx   ← 歌曲脚本：只这首歌
+  └─ 代码结束
+
+  ┌─ 代码：① data/stages/mystage.hx（舞台脚本） ［haxe］
+  │ // this = 舞台。可以加装饰、改元素
+  │ function postCreate() {
+  │ 	var neon = new FlxSprite(0, 0).makeGraphic(FlxG.width, 8, 0xFF00FFCC);
+  │ 	neon.scrollFactor.set();
+  │ 	add(neon);
+  │ }
+  │ 
+  │ // 舞台脚本能被歌曲脚本拿到
+  │ function pulse() {
+  │ 	FlxTween.tween(this, {alpha: 1}, 0.1, {onComplete: function (_) this.alpha = 0.7});
+  │ }
+  └─ 代码结束
+
+  ┌─ 代码：② songs/mysong/scripts/main.hx（歌曲脚本） ［haxe］
+  │ // 拿别的脚本（路径相对 assets/）
+  │ var helper = importScript("data/scripts/helper");
+  │ 
+  │ function postCreate() {
+  │ 	// 调舞台脚本里的函数（舞台脚本挂在 stage 上）
+  │ 	stage.call("pulse");
+  │ 
+  │ 	// 调 helper 里导出的函数
+  │ 	helper.sayHi("main");
+  │ }
+  │ 
+  │ function beatHit(curBeat:Int) {
+  │ 	if (curBeat % 4 == 0) stage.call("pulse");
+  │ }
+  └─ 代码结束
+
+  ┌─ 代码：③ data/scripts/helper.hx（可复用工具） ［haxe］
+  │ // 想被外部拿到，用 public
+  │ public var callCount:Int = 0;
+  │ 
+  │ public function sayHi(from:String) {
+  │ 	callCount++;
+  │ 	trace("[helper] 被 " + from + " 调用第 " + callCount + " 次");
+  │ }
+  │ 
+  │ // 不带 public 的就只有自己能用
+  │ function privateThing() { }
+  └─ 代码结束
+
+    【注意：importScript 是运行时加载】
+      它在脚本执行到那一行时才加载，所以别把 importScript 写在 function 里面（会
+      每次调用都加载一次）。写在文件顶层。
+
+
   ■ ⑧ 解释器是怎么配的（决定了你能写什么）
   ──────────────────────────────────────
 
@@ -7896,6 +8213,46 @@
       · 不要每帧 new 对象（尤其是 FlxSprite、FlxTween、lambda）。
       · 脚本里 trace 也是开销，发布前删掉或包在 #if debug 里。
       · 同一个效果别在两个脚本里各写一遍 —— 会叠加执行。
+
+
+  ■ 完整示例：跨脚本共享状态
+  ────────────────────────
+
+    ScriptPack.publicVariables 是同一状态里所有脚本共用的「公共黑板」。用它传
+    数据，比 static 安全（切状态自动清）。
+
+  ┌─ 代码：a.hx —— 写入 ［haxe］
+  │ function postCreate() {
+  │ 	// 写进公共变量表
+  │ 	setVar("myMod_hp", 3);
+  │ 	setVar("myMod_flags", ["dash", "shield"]);
+  │ }
+  └─ 代码结束
+
+  ┌─ 代码：b.hx —— 读取 ［haxe］
+  │ function update(elapsed:Float) {
+  │ 	var hp = getVar("myMod_hp");
+  │ 	if (hp == null) return;   // 对方还没写
+  │ 
+  │ 	if (getVar("myMod_flags").contains("dash") && FlxG.keys.justPressed.SHIFT) {
+  │ 		PlayState.instance.camGame.shake(0.01, 0.15);
+  │ 	}
+  │ }
+  └─ 代码结束
+
+
+  ■ 热重载：改完脚本不用重开游戏
+  ────────────────────────────
+
+  ┌─ 代码：三种重载粒度 ［ini］
+  │ F5        → 重载当前状态（脚本全部重跑，对象重建）
+  │ Shift+F5  → 重载全部脚本（含全局）
+  │ 切界面     → 状态脚本自动重建
+  └─ 代码结束
+
+    【注意：重载会丢什么】
+      static 变量不会重置，闭包、FlxTween、定时器全部失效。所以重载后如果出现「
+      两次伤害」「动画叠在一起」，先查残留的定时器。
 
 
   ■ ⑧ 事件派发时脚本之间的协作
@@ -8142,6 +8499,49 @@
   │ trace(PlayState.difficulty);
   │ trace(PlayState.variation);
   └─ 代码结束
+
+
+  ■ 完整示例：读谱面做统计
+  ──────────────────────
+
+    用 PlayState.SONG（ChartData 结构）遍历谱面，算出「多少音符、最长长按、BPM
+    变更点」—— 这是做谱面分析/自定义 HUD 的起点。
+
+  ┌─ 代码：songs/mysong/scripts/stats.hx ［haxe］
+  │ function postCreate() {
+  │ 	var S = PlayState.SONG;
+  │ 	var total = 0, holds = 0, maxHold = 0.0;
+  │ 	var perLine:Array<String> = [];
+  │ 
+  │ 	for (line in S.strumLines) {
+  │ 		var n = line.notes.length;
+  │ 		total += n;
+  │ 		perLine.push("type" + line.type + ":" + n);
+  │ 
+  │ 		for (note in line.notes) {
+  │ 			if (note.sLen > 0) {
+  │ 				holds++;
+  │ 				if (note.sLen > maxHold) maxHold = note.sLen;
+  │ 			}
+  │ 		}
+  │ 	}
+  │ 
+  │ 	trace("总音符 " + total + " | 长按 " + holds + " | 最长 " + maxHold + "ms");
+  │ 	trace("分轨  " + perLine.join("  "));
+  │ 	trace("事件  " + S.events.length + " 条");
+  │ 
+  │ 	// BPM 变更点（从事件里找）
+  │ 	for (ev in S.events) {
+  │ 		if (ev.name == "BPM Change")
+  │ 			trace("  BPM 变更 @ " + ev.time + "ms → " + ev.params[0]);
+  │ 	}
+  │ }
+  └─ 代码结束
+
+    【注意：字段名别混】
+      谱面 JSON 里是 sLen / time / id；运行时 Note 对象上是 sustainLength /
+      strumTime / noteData。上面的脚本读的是 JSON 结构（PlayState.SONG），所以用
+      sLen。
 
 
   ■ ⑧ 三个「同名不同物」要分清
@@ -8399,6 +8799,51 @@
       会跳转。
 
 
+  ■ 完整示例：三段式节奏特效
+  ────────────────────────
+
+    「前奏轻晃 → 副歌旋转放大 → 结尾骤停」——这是最常见的 modchart 编排方式，用
+    ease 串起来。
+
+  ┌─ 代码：songs/mysong/scripts/fx.hx ［haxe］
+  │ import modchart.Manager;
+  │ 
+  │ var m:Manager = null;
+  │ 
+  │ function postCreate() {
+  │ 	m = new Manager();
+  │ 	add(m);
+  │ 
+  │ 	m.addModifier("Rotate");
+  │ 	m.addModifier("Scale");
+  │ 	m.addModifier("Stealth");
+  │ 
+  │ 	// ① 前奏（第 0~16 拍）：轻微左右晃
+  │ 	m.set("Rotate", 0, 0);
+  │ 	m.ease("Rotate", 16, 8, FlxEase.sineInOut, 0.08);
+  │ 
+  │ 	// ② 副歌（第 32 拍起）：旋转 + 放大
+  │ 	m.ease("Rotate", 32, 4, FlxEase.quadOut, 0.25);
+  │ 	m.ease("Scale",  32, 4, FlxEase.quadOut, 1.3);
+  │ 
+  │ 	// ③ 结尾（第 64 拍）：箭头淡出
+  │ 	m.set("Stealth", 64, 1);
+  │ 
+  │ 	// ④ 第 66 拍回调：做点别的
+  │ 	m.callback(66, function () {
+  │ 		PlayState.instance.camGame.flash(0xFFFFFFFF, 0.2);
+  │ 	});
+  │ }
+  │ 
+  │ function destroy() {
+  │ 	if (m != null) { remove(m, true); m = null; }
+  │ }
+  └─ 代码结束
+
+    【注意：destroy 一定要写】
+      不 remove 的话，切歌后 Manager 还在跑，会继续改已经销毁的箭头 → 崩溃。
+
+
   ■ ⑦ 为什么它要「适配器」
   ──────────────────────
 
@@ -8652,6 +9097,63 @@
       · 局部变色 ｜ 句子里用 <format color="#FF0000">红字</format>
 
 
+  ■ 完整示例：一套能跑的对话
+  ────────────────────────
+
+    对话需要 4 个文件配合。这里给出最小可运行的一套，可以直接抄进你的 mod。
+
+  ┌─ 代码：文件清单 ［ini］
+  │ mods/my-mod/
+  │ ├─ data/dialogue/boxes/default.xml        ← 对话框外观（可省略，用原版）
+  │ ├─ data/dialogue/characters/dad.xml       ← 立绘配置（可省略）
+  │ └─ songs/mysong/dialogue.xml              ← 对话内容（必需）
+  │    songs/mysong/dialogue.hx               ← 对话脚本（可选，处理 callback）
+  └─ 代码结束
+
+  ┌─ 代码：① 对话内容 songs/mysong/dialogue.xml ［xml］
+  │ <dialogue box="default">
+  │ 	<char name="dad" position="left" />
+  │ 	<char name="bf"  position="right" />
+  │ 
+  │ 	<line char="dad" bubble="normal" speed="0.04" callback="onDadLine">
+  │ 		你终于来了。
+  │ 	</line>
+  │ 
+  │ 	<line char="bf" bubble="angry" changeDefAnim="angry">
+  │ 		谁怕谁。
+  │ 	</line>
+  │ </dialogue>
+  └─ 代码结束
+
+  ┌─ 代码：② 对话脚本 songs/mysong/dialogue.hx ［haxe］
+  │ function onDadLine() {
+  │ 	trace("爸爸那句说完了");
+  │ 	// 想加演出：闪个屏
+  │ 	if (PlayState.instance != null)
+  │ 		PlayState.instance.camGame.flash(0xFFFFFFFF, 0.2);
+  │ }
+  └─ 代码结束
+
+  ┌─ 代码：③ 对话框外观 data/dialogue/boxes/default.xml（节选） ［xml］
+  │ <dialoguebox y="75">
+  │ 	<text font="vcr.ttf" x="107" y="206" width="1053" color="#000000" size="40"/>
+  │ 	<charpos name="left"  x="-500" y="184" flipBubble="true" />
+  │ 	<charpos name="right" x="500"  y="184" />
+  │ 	<anim name="normal" anim="speech bubble normal" fps="24" loop="true" x="-30" />
+  │ </dialoguebox>
+  └─ 代码结束
+
+  ┌─ 代码：④ 触发：在 modpack.ini 或歌曲事件里 ［ini］
+  │ # 方式 A：打歌前播（PlayState 会自动找 songs/<歌>/dialogue.xml）
+  │ [Common]
+  │ # 具体字段以你版本的 PlayState.startCutscene 为准
+  │ 
+  │ # 方式 B：用事件在任意时间点播
+  │ # 在谱面里加一条事件：HScript Call → 你的函数
+  │ # function playMyDialogue() { PlayState.instance.startCutscene("dialogue"); }
+  └─ 代码结束
+
+
   ■ ⑦ 对话相关事件（可拦截）
   ────────────────────────
 
@@ -8853,6 +9355,63 @@
   └─ 代码结束
 
     FlxG.save 是 Flixel 的存档对象，和 Options / FunkinSave 各自独立，互不影响。
+
+
+  ■ 完整示例：一份带默认值 + 版本迁移的存档
+  ──────────────────────────────────────
+
+    存档最大的坑是「第一次玩没有字段」。下面是能抗住版本变化的写法。
+
+  ┌─ 代码：songs/mysong/scripts/save.hx ［haxe］
+  │ // ---- 读：永远给默认值 ----
+  │ function getData():Dynamic {
+  │ 	var d = FlxG.save.data.myModData;
+  │ 	if (d == null) d = {};
+  │ 
+  │ 	// 版本迁移：老存档补字段
+  │ 	if (d.version == null) {
+  │ 		d.version = 1;
+  │ 		d.clears = 0;
+  │ 		d.bestCombo = 0;
+  │ 	}
+  │ 	return d;
+  │ }
+  │ 
+  │ function postCreate() {
+  │ 	var d = getData();
+  │ 	trace("通关次数 " + d.clears + "  最高连击 " + d.bestCombo);
+  │ }
+  │ 
+  │ // ---- 写：改完立刻 flush ----
+  │ function onSongEnd() {
+  │ 	var d = getData();
+  │ 	d.clears += 1;
+  │ 	if (PlayState.instance.combo > d.bestCombo)
+  │ 		d.bestCombo = PlayState.instance.combo;
+  │ 
+  │ 	FlxG.save.data.myModData = d;
+  │ 	FlxG.save.flush();
+  │ }
+  └─ 代码结束
+
+  ┌─ 代码：读写最高分（引擎自带的那套） ［haxe］
+  │ // 读
+  │ var hs = FunkinSave.getSongHighscore("bopeebo", "hard");
+  │ if (hs != null) trace("最高 " + hs.score + " 准确率 " + hs.accuracy);
+  │ 
+  │ // 写（只有更高才覆盖；force = true 强制）
+  │ FunkinSave.setSongHighscore("bopeebo", "hard", null, {
+  │ 	score: 123456,
+  │ 	accuracy: 0.982,
+  │ 	misses: 2,
+  │ 	hits: ["sick" => 80, "good" => 12],
+  │ 	date: "2026-10-23"
+  │ });
+  └─ 代码结束
+
+    【建议：存哪不会被覆盖】
+      别写进 mods/<你的mod>/（更新会覆盖）。自定义数据写 FlxG.save（自动在存档目
+      录），大文件写 %APPDATA%/你的mod/。
 
 
   ■ ④ 为什么最高分要按「模式」分开存

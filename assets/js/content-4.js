@@ -715,7 +715,31 @@
                 ['退出', '`Sys.exit(0)`']
               ]
             }
-          }
+          },
+          { h: '⑪ `Sys`：直接调操作系统' },
+          { p: "**`Sys` 是注入给每个脚本的**（`Script.hx` 的默认变量表里 `#if sys \"Sys\" => Sys`），所以桌面版所有脚本都能直接调，不用 import。" },
+          { p: "这一条很关键：它意味着 mod 脚本**能执行任意系统命令**——也是为什么「装 mod」本质上是「信任它的代码」。" },
+          { code: { lang: 'haxe', src: 'function postCreate() {\n\t// 跑一条系统命令（返回值 = 退出码，0 表示成功）\n\tvar code = Sys.command("cmd", ["/c", "echo hello"]);\n\n\t// 打开一个文件夹（Windows）\n\tSys.command("explorer", [Sys.getCwd()]);\n\n\t// 读环境变量\n\ttrace(Sys.getEnv("USERPROFILE"));\n\n\t// 拿游戏 exe 的路径 / 工作目录\n\ttrace(Sys.programPath());\n\ttrace(Sys.getCwd());\n\n\t// 退出（0 = 正常）\n\t// Sys.exit(0);\n}' } },
+          {
+            table: {
+              head: ['方法', '作用'],
+              rows: [
+                ['`Sys.command(cmd, ?args)`', '执行外部程序，返回退出码（**这是唯一能"跑东西"的入口**）'],
+                ['`Sys.exit(code)`', '立刻退出游戏（不存档、不走 onExit）'],
+                ['`Sys.getEnv(name)`', '读环境变量'],
+                ['`Sys.putEnv(name, value)`', '写环境变量（只影响当前进程）'],
+                ['`Sys.args()`', '命令行参数数组'],
+                ['`Sys.programPath()`', '当前 exe 的完整路径'],
+                ['`Sys.getCwd()` / `Sys.setCwd(p)`', '工作目录'],
+                ['`Sys.systemName()`', '`Windows` / `Linux` / `Mac`'],
+                ['`Sys.cpuTime()`', 'CPU 时间（秒）'],
+                ['`Sys.sleep(s)`', '**阻塞**当前线程 s 秒 —— 别在主线程用']
+              ]
+            }
+          },
+          { callout: { kind: 'warn', title: '这里有个精确的边界', text: "`Sys` 能用，但 `sys.io.File` / `sys.FileSystem` **不能用** —— 它们没被注入成变量，也不在 `hscript.Config.ALLOWED_CUSTOM_CLASSES`（只有 `flixel` / `funkin` / `foxlite` / `modchart.*`）里。**注意区别**：`sys.io.File` 这个**类**不能直接用，但引擎已经把它封装好了 —— `CoolUtil.safeSaveFile(path, content)`、`CoolUtil.deleteFolder(path)`、`CoolUtil.addMissingFolders(path)` 都能在脚本里直接调（它们是注入变量）。所以**脚本是能写文件的**，只是入口不在 `File`。" } },
+          { code: { lang: 'haxe', title: '常见需求的实际做法', src: '// ✓ 写文件：CoolUtil 封装好了（内部就是 sys.io.File）\nCoolUtil.safeSaveFile("my-mod/save.json", Json.stringify(data));\n\n// ✓ 建目录 / 删目录\nCoolUtil.addMissingFolders("my-mod/logs/");\nCoolUtil.deleteFolder("my-mod/tmp");\n\n// ✓ 读：Assets.getText(路径)，Paths.file() 只给路径\nvar path = Paths.file("data/config/menuItems.txt");\nvar txt  = Assets.getText(path);\n\n// ✓ 打包/解压：ZipUtil（#if sys）\n// createZipFile / writeFolderToZip / openZip / uncompressZip' } },
+          { p: "平台限制：这些全是 `#if sys` 的东西，**HTML5 构建里没有**。写跨平台 mod 时要包一层 `#if sys`。" },
         ],
         deep: [
           { h: '⑪ 命令的「生效时机」' },

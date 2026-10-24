@@ -412,7 +412,27 @@
               ]
             }
           },
-          { code: { lang: 'haxe', title: '用事件拦下溅射，改成自己的动画', src: 'import funkin.backend.scripting.events.splash.SplashShowEvent;\n\nfunction onSplashShow(e:SplashShowEvent) {\n\t// 只处理玩家这一侧的\n\tif (e.strum != null && e.strum.__strumLine != null) {\n\t\t// 比如：把溅射放大一点\n\t\te.splash.scale.set(1.2, 1.2);\n\t\te.splash.updateHitbox();\n\t}\n}\n\n// 也可以主动播一个\nfunction playCustom(strum) {\n\tif (PlayState.instance != null)\n\t\tPlayState.instance.splashHandler.showSplash("default", strum);\n}' } }
+          { code: { lang: 'haxe', title: '用事件拦下溅射，改成自己的动画', src: 'import funkin.backend.scripting.events.splash.SplashShowEvent;\n\nfunction onSplashShow(e:SplashShowEvent) {\n\t// 只处理玩家这一侧的\n\tif (e.strum != null && e.strum.__strumLine != null) {\n\t\t// 比如：把溅射放大一点\n\t\te.splash.scale.set(1.2, 1.2);\n\t\te.splash.updateHitbox();\n\t}\n}\n\n// 也可以主动播一个\nfunction playCustom(strum) {\n\tif (PlayState.instance != null)\n\t\tPlayState.instance.splashHandler.showSplash("default", strum);\n}' } },
+          { h: '溅射 XML 的完整写法' },
+          { p: "`data/splashes/<名字>.xml` 决定「四个方向各自用哪几段动画」。官方 `default.xml` 就是最标准的模板：" },
+          { code: { lang: 'xml', title: 'data/splashes/default.xml', src: '<splashes sprite="game/splashes/default" alpha="0.6">\n\t<strum id="0"> <!-- 左 -->\n\t\t<anim name="splashleft1" anim="note impact 1 purple" fps="24" />\n\t\t<anim name="splashleft2" anim="note impact 2 purple" fps="24" />\n\t</strum>\n\t<strum id="1"> <!-- 下 -->\n\t\t<anim name="splashdown1" anim="note impact 1 blue" fps="24" />\n\t</strum>\n\t<strum id="2"> <!-- 上 -->\n\t\t<anim name="splashup1" anim="note impact 1 green" fps="24" />\n\t</strum>\n\t<strum id="3"> <!-- 右 -->\n\t\t<anim name="splashright1" anim="note impact 1 red" fps="24" />\n\t</strum>\n</splashes>' } },
+          {
+            table: {
+              head: ['属性', '位置', '说明'],
+              rows: [
+                ['`sprite`', '根节点', '**必需**，图集名（缺了会直接抛 `requires a sprite attribute`）'],
+                ['`alpha`', '根节点', '整组透明度，默认 1'],
+                ['`scale`', '根节点', '整组缩放，默认 1'],
+                ['`antialiasing`', '根节点', '默认 `true`'],
+                ['`id`', '`<strum>`', '方向：0 左 / 1 下 / 2 上 / 3 右'],
+                ['`name`', '`<anim>`', '动画标识（内部用，可随意）'],
+                ['`anim`', '`<anim>`', '图集里的帧前缀'],
+                ['`fps`', '`<anim>`', '帧率'],
+                ['`x` / `y`', '`<anim>`', '偏移']
+              ]
+            }
+          },
+          { p: "同一个方向可以写多条 `<anim>` —— 引擎会随机挑一条播，这就是「同一方向两种打击特效」的做法。" },
         ]
       },
 

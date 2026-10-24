@@ -773,6 +773,53 @@
       · data/states/FreeplayState.hx 可以整体接管这个界面。
 
 
+  ■ 歌单到底是怎么拼出来的（源码级）
+  ────────────────────────────────
+
+    「为什么我的 mod 装上之后原版的歌全没了」——答案在这段逻辑里。
+    FreeplaySonglist.get() 按 SONGS_LIST_MOD_MODE 决定拼接顺序：
+
+    ［模式 ｜ 实际执行顺序 ｜ 结果］
+      · override（默认） ｜ 先 MODS，只有在 MODS 一首都没找到时才补 SOURCE ｜
+        mod 有歌 → 原版全消失
+      · prepend ｜ MODS → SOURCE ｜ mod 的歌在前
+      · append ｜ SOURCE → MODS ｜ mod 的歌在后
+
+    【注意：override 是个容易误伤的默认值】
+      很多人第一次做 mod 会发现原版歌单空了——因为默认 override。想让自己的歌排进
+      去，用 SONGS_LIST_MOD_MODE="append"。
+
+
+  ■ freeplaySonglist.txt：手动指定顺序和曲目
+  ──────────────────────────────────────
+
+    不想用「扫目录」的自动顺序，就用 txt 手动列。一行一首，可以带子目录前缀：
+
+  ┌─ 代码：data/config/freeplaySonglist.txt ［ini］
+  │ bopeebo
+  │ fresh
+  │ dadbattle
+  │ # 嵌套目录也行
+  │ my-album/song1
+  │ my-album/song2
+  └─ 代码结束
+
+      ▸ 新的正确路径
+          data/config/freeplaySonglist.txt
+      ▸ 旧的废弃路径
+          data/freeplaySonglist.txt —— 还能读，但日志会警告 is deprecated
+      ▸ 扫描兜底
+          没有 txt 时才去扫 songs/ 目录
+      ▸ 每个条目
+          会调 Chart.loadChartMeta() 读它的 meta.json
+      ▸ 嵌套目录
+          支持子文件夹；文件夹会排在歌曲前面（代码里专门做了 endsWith("/") 的分流）
+
+    顺带一个细节：getSongsFromSource() 的返回值是反的 —— 找到歌返回 false，没
+    找到返回 true。override 模式就是靠「返回 true 才补 SOURCE」来工作的。读源
+    码时别被绕进去。
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 09 节　故事模式
 　STORY MODE
@@ -1059,6 +1106,119 @@
       · GPU Only Bitmaps 不是越开越快：它省内存，但某些驱动上会让图片变黑。
       · Streamed Music 关掉会更稳但更吃内存 —— 低配机器反而应该开着。
       · Ghost Tapping 关掉之后，很多人会突然发现自己「其实一直在乱按」。
+
+
+  ■ 设置项的完整字段表（Options 里全部 86 个非按键字段）
+  ──────────────────────────────────────
+
+    界面上的每一项背后都是 Options 的一个静态字段，改它等于改设置。下面是按功
+    能分组的全表（默认值取自源码）。
+
+  ● 画面 / 显示
+
+    ［字段 ｜ 默认 ｜ 含义］
+      · naughtyness ｜ true ｜ 主菜单「彩蛋」开关
+      · downscroll ｜ false ｜ 下滚
+      · centeredFields ｜ false ｜ 按居中方式排轨道（对应 Flag
+        ALLOW_CENTERED_FIELDS）
+      · flashingMenu ｜ true ｜ 主菜单闪烁动画
+      · camZoomOnBeat ｜ true ｜ 跟拍镜头缩放
+      · antialiasing ｜ true ｜ 全局抗锯齿
+      · week6PixelPerfect ｜ true ｜ Week 6 像素完美渲染
+      · colorHealthBar ｜ true ｜ 血条变色（按角色主色）
+      · intensiveBlur ｜ true ｜ 高质量模糊（关掉更省 GPU）
+      · quality ｜ 1 ｜ 画质档位（影响纹理过滤等）
+      · gpuOnlyBitmaps ｜ true（mac/web 为 false） ｜ 位图只留显存
+      · lowMemoryMode ｜ false ｜ 低内存模式（只加载 low-memory 分组的舞台元素）
+      · splashesEnabled ｜ true ｜ 打击溅射特效
+      · gameplayShaders ｜ true ｜ 游戏内 shader
+
+  ● FPS 计数器（6 个子开关）
+
+    ［字段 ｜ 默认 ｜ 含义］
+      · fpsCounter ｜ true ｜ F3 面板总开关
+      · fpsCounterConductor ｜ true ｜ 显示节拍信息
+      · fpsCounterFlixel ｜ true ｜ 显示 Flixel 状态
+      · fpsCounterSystem ｜ true ｜ 显示系统信息
+      · fpsCounterAssets ｜ true ｜ 显示资源统计
+      · fpsCounterStats ｜ true ｜ 显示 totalDC 等渲染统计（做性能优化就看这个）
+
+  ● 系统 / 运行时
+
+    ［字段 ｜ 默认 ｜ 含义］
+      · autoPause ｜ true ｜ 失焦自动暂停
+      · discordRPC ｜ true ｜ Discord 状态
+      · betaUpdates ｜ false ｜ 接收测试版更新
+      · allowConfigWarning ｜ true ｜ 显示 mod 配置警告页
+      · useNativeConsole ｜ false ｜ 用 Windows 原生控制台而不是游戏内控制台
+      · imguiMultiViewport ｜ true（linux 为 false） ｜ ImGui 多视口
+      · framerate ｜ 120 ｜ 帧率上限
+      · devMode ｜ false ｜ 开发者模式（开关一堆隐藏界面）
+      · legacyMemoryCounter ｜ false ｜ 旧版内存计数器
+      · legacyModMenuNames ｜ false ｜ Mod 菜单用旧命名
+      · lastLoadedMod ｜ null ｜ 上次加载的 mod（启动时自动选）
+      · disabledAddons ｜ [] ｜ 被禁用的 addons 列表
+
+  ● 音频
+
+    ［字段 ｜ 默认 ｜ 含义］
+      · volume ｜ 1 ｜ 主音量
+      · volumeMusic ｜ 1 ｜ 音乐音量
+      · volumeSFX ｜ 1 ｜ 音效音量
+      · streamedMusic ｜ true ｜ 音乐流式加载（低配应开）
+      · streamedVocals ｜ true ｜ 人声流式加载
+      · songOffset ｜ 0 ｜ 打歌偏移（毫秒）
+      · songOffsetAffectEditors ｜ false ｜ 偏移是否也作用于编辑器
+
+  ● 编辑器（editor / charter）
+
+    ［字段 ｜ 默认 ｜ 含义］
+      · editorSFX ｜ true ｜ 编辑器音效
+      · editorsResizable ｜ true ｜ 编辑器窗口可缩放
+      · bypassEditorsResize ｜ false ｜ 强制允许缩放
+      · maxUndos ｜ 120 ｜ 撤销栈上限
+      · editorCharterPrettyPrint ｜ false ｜ 谱面 JSON 美化输出
+      · editorCharacterPrettyPrint ｜ true ｜ 人物 XML 美化输出
+      · editorStagePrettyPrint ｜ true ｜ 舞台 XML 美化输出
+      · charterSwapEventSides ｜ false ｜ 事件轨道左右互换
+      · charterMetronomeEnabled ｜ false ｜ 节拍器
+      · charterShowSections ｜ true ｜ 显示小节分隔线
+      · charterShowBeats ｜ true ｜ 显示拍分隔线
+      · charterShowCameraHighlights ｜ true ｜ 显示相机事件高亮
+      · charterEnablePlaytestScripts ｜ true ｜ 试玩时也跑脚本
+      · charterRainbowWaveforms ｜ false ｜ 彩虹波形
+      · charterLowDetailWaveforms ｜ false ｜ 低精度波形
+      · charterAutoSaves ｜ true ｜ 自动保存
+      · charterAutoSaveTime ｜ 300 ｜ 自动保存间隔（秒）
+      · charterAutoSaveWarningTime ｜ 5 ｜ 保存前提示秒数
+      · charterAutoSavesSeparateFolder ｜ false ｜ 存到独立目录
+      · charterPauseQuant ｜ false ｜ 暂停时按拍对齐
+      · characterHitbox / characterCamera / characterAxis ｜ true ｜ 人物编辑器
+        里的三个显示开关
+      · characterDragging ｜ true ｜ 允许鼠标拖动偏移
+      · playAnimOnOffset ｜ false ｜ 调偏移时自动播动画
+      · stageSelected ｜ null ｜ 上次打开的舞台
+
+  ● 控制台过滤器（13 个）
+
+    F2 控制台里每个过滤按钮对应一个字段，默认全 true（都显示）：
+
+  ┌─ 代码 ［haxe］
+  │ consoleTimeFilter      consoleTypeFilter
+  │ consoleInfoFilter      consoleWarningFilter
+  │ consoleErrorFilter     consoleTraceFilter
+  │ consoleVerboseFilter   consoleCommandsFilter
+  │ consoleClassFilter     consoleFunctionFilter
+  │ consoleBasicTypesFilter consoleObjectsFilter
+  │ consoleScriptsFilter
+  │ 
+  │ // 另有
+  │ consoleCountDuplicatedOutput  // 重复日志合并计数，默认 true
+  └─ 代码结束
+
+    【建议：怎么用这张表】
+      想让玩家默认就关掉某个效果？在你的 mod 里 Options.xxx = false;（记得
+      Options.save()）。别直接改源码里的默认值 —— 那是给所有人改的。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -2184,6 +2344,46 @@
   │ 		PlayState.instance.splashHandler.showSplash("default", strum);
   │ }
   └─ 代码结束
+
+
+  ■ 溅射 XML 的完整写法
+  ───────────────────
+
+    data/splashes/<名字>.xml 决定「四个方向各自用哪几段动画」。官方
+    default.xml 就是最标准的模板：
+
+  ┌─ 代码：data/splashes/default.xml ［xml］
+  │ <splashes sprite="game/splashes/default" alpha="0.6">
+  │ 	<strum id="0"> <!-- 左 -->
+  │ 		<anim name="splashleft1" anim="note impact 1 purple" fps="24" />
+  │ 		<anim name="splashleft2" anim="note impact 2 purple" fps="24" />
+  │ 	</strum>
+  │ 	<strum id="1"> <!-- 下 -->
+  │ 		<anim name="splashdown1" anim="note impact 1 blue" fps="24" />
+  │ 	</strum>
+  │ 	<strum id="2"> <!-- 上 -->
+  │ 		<anim name="splashup1" anim="note impact 1 green" fps="24" />
+  │ 	</strum>
+  │ 	<strum id="3"> <!-- 右 -->
+  │ 		<anim name="splashright1" anim="note impact 1 red" fps="24" />
+  │ 	</strum>
+  │ </splashes>
+  └─ 代码结束
+
+    ［属性 ｜ 位置 ｜ 说明］
+      · sprite ｜ 根节点 ｜ 必需，图集名（缺了会直接抛 requires a sprite
+        attribute）
+      · alpha ｜ 根节点 ｜ 整组透明度，默认 1
+      · scale ｜ 根节点 ｜ 整组缩放，默认 1
+      · antialiasing ｜ 根节点 ｜ 默认 true
+      · id ｜ <strum> ｜ 方向：0 左 / 1 下 / 2 上 / 3 右
+      · name ｜ <anim> ｜ 动画标识（内部用，可随意）
+      · anim ｜ <anim> ｜ 图集里的帧前缀
+      · fps ｜ <anim> ｜ 帧率
+      · x / y ｜ <anim> ｜ 偏移
+
+    同一个方向可以写多条 <anim> —— 引擎会随机挑一条播，这就是「同一方向两种打
+    击特效」的做法。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -4147,6 +4347,76 @@
       · 退出 ｜ Sys.exit(0)
 
 
+  ■ ⑪ Sys：直接调操作系统
+  ─────────────────────
+
+    Sys 是注入给每个脚本的（Script.hx 的默认变量表里 #if sys "Sys" => Sys），
+    所以桌面版所有脚本都能直接调，不用 import。
+
+    这一条很关键：它意味着 mod 脚本能执行任意系统命令——也是为什么「装 mod」本
+    质上是「信任它的代码」。
+
+  ┌─ 代码 ［haxe］
+  │ function postCreate() {
+  │ 	// 跑一条系统命令（返回值 = 退出码，0 表示成功）
+  │ 	var code = Sys.command("cmd", ["/c", "echo hello"]);
+  │ 
+  │ 	// 打开一个文件夹（Windows）
+  │ 	Sys.command("explorer", [Sys.getCwd()]);
+  │ 
+  │ 	// 读环境变量
+  │ 	trace(Sys.getEnv("USERPROFILE"));
+  │ 
+  │ 	// 拿游戏 exe 的路径 / 工作目录
+  │ 	trace(Sys.programPath());
+  │ 	trace(Sys.getCwd());
+  │ 
+  │ 	// 退出（0 = 正常）
+  │ 	// Sys.exit(0);
+  │ }
+  └─ 代码结束
+
+    ［方法 ｜ 作用］
+      · Sys.command(cmd, ?args) ｜ 执行外部程序，返回退出码（这是唯一能"跑东西"
+        的入口）
+      · Sys.exit(code) ｜ 立刻退出游戏（不存档、不走 onExit）
+      · Sys.getEnv(name) ｜ 读环境变量
+      · Sys.putEnv(name, value) ｜ 写环境变量（只影响当前进程）
+      · Sys.args() ｜ 命令行参数数组
+      · Sys.programPath() ｜ 当前 exe 的完整路径
+      · Sys.getCwd() / Sys.setCwd(p) ｜ 工作目录
+      · Sys.systemName() ｜ Windows / Linux / Mac
+      · Sys.cpuTime() ｜ CPU 时间（秒）
+      · Sys.sleep(s) ｜ 阻塞当前线程 s 秒 —— 别在主线程用
+
+    【注意：这里有个精确的边界】
+      Sys 能用，但 sys.io.File / sys.FileSystem 不能用 —— 它们没被注入成变量，也
+      不在 hscript.Config.ALLOWED_CUSTOM_CLASSES（只有 flixel / funkin / foxlite
+      / modchart.*）里。注意区别：sys.io.File 这个类不能直接用，但引擎已经把它封
+      装好了 —— CoolUtil.safeSaveFile(path, content)、
+      CoolUtil.deleteFolder(path)、CoolUtil.addMissingFolders(path) 都能在脚本里
+      直接调（它们是注入变量）。所以脚本是能写文件的，只是入口不在 File。
+
+  ┌─ 代码：常见需求的实际做法 ［haxe］
+  │ // ✓ 写文件：CoolUtil 封装好了（内部就是 sys.io.File）
+  │ CoolUtil.safeSaveFile("my-mod/save.json", Json.stringify(data));
+  │ 
+  │ // ✓ 建目录 / 删目录
+  │ CoolUtil.addMissingFolders("my-mod/logs/");
+  │ CoolUtil.deleteFolder("my-mod/tmp");
+  │ 
+  │ // ✓ 读：Assets.getText(路径)，Paths.file() 只给路径
+  │ var path = Paths.file("data/config/menuItems.txt");
+  │ var txt  = Assets.getText(path);
+  │ 
+  │ // ✓ 打包/解压：ZipUtil（#if sys）
+  │ // createZipFile / writeFolderToZip / openZip / uncompressZip
+  └─ 代码结束
+
+    平台限制：这些全是 #if sys 的东西，HTML5 构建里没有。写跨平台 mod 时要包一
+    层 #if sys。
+
+
   ■ ⑪ 命令的「生效时机」
   ────────────────────
 
@@ -5285,7 +5555,8 @@
         FlxSound FlxAssets FlxMath FlxGroup FlxTypedGroup FlxSpriteGroup FlxText
         FlxTypeText FlxTimer FlxPoint FlxAxes FlxColor
       · 游戏对象 ｜ PlayState GameOverSubstate HealthIcon HudCamera Note Strum
-        StrumLine Character Boyfriend(兼容名) Stage
+        StrumLine Character Boyfriend(兼容名) —— Stage 不在注入表里，要用得 import
+        funkin.game.Stage;
       · 菜单/状态 ｜ PauseSubstate FreeplayState MainMenuState StoryMenuState
         TitleState ModState ModSubState Options
       · 引擎工具 ｜ Paths Conductor Flags CoolUtil IniUtil XMLUtil ZipUtil
@@ -5297,7 +5568,8 @@
         FoxLoaderUtil FoxModel FoxQuadMesh FoxCubeMesh FoxMaterial FoxShader
         FoxTexture FoxDirectionalLight FoxPanoramaSky FoxFunkinSprite FoxFlxSprite
         等
-      · 脚本对象 ｜ Script ScriptPack EventManager
+      · 脚本对象 ｜ __script__(当前脚本实例) —— Script / ScriptPack /
+        EventManager 不是注入变量，需 import funkin.backend.scripting.XXX;
 
     【说明：不在表里的类】
       要 import。比如 WindowUtils、NdllUtil、flixel.addons.* 的具体类。
@@ -5476,6 +5748,136 @@
           当前 FlxG.state，任何界面都有值（可能是菜单）
       ▸ 建议
           打歌逻辑用 game，通用逻辑用 state，都要判空
+
+
+  ■ 注入变量的真相（按 Script.hx 逐条核对）
+  ──────────────────────────────────────
+
+    第 28 节上面那张表是「分类速查」，这里是源码事实：
+    Script.buildDefaultVariables() 一共注入 107 个名字，分成 6 组。
+
+    ［组 ｜ 数量 ｜ 内容］
+      · Haxe 标准库 ｜ 10 ｜ Std Math Reflect StringTools Json Xml Type Date
+        Lambda Sys
+      · OpenFL / Lime ｜ 4 ｜ BlendMode Assets Application Main
+      · Flixel ｜ 19 ｜ FlxG FlxSprite FlxBasic FlxCamera FlxEase FlxTween
+        FlxSound FlxAssets FlxMath FlxGroup FlxTypedGroup FlxSpriteGroup
+        FlxTypeText FlxText FlxTimer FlxPoint FlxAxes FlxColor …
+      · foxlite（3D） ｜ 36 ｜ 全部 Fox* 类，只在开了 THREE_D_SUPPORT && foxlite
+        的构建里注入
+      · 引擎对象 ｜ 27 ｜ PlayState Character Note Strum StrumLine Options Paths
+        Conductor Flags Alphabet ModState …
+      · 引擎工具 ｜ 11 ｜ CoolUtil IniUtil XMLUtil ZipUtil MarkdownUtil
+        EngineUtil ThreadUtil MemoryUtil BitmapUtil TranslationUtil translate
+
+    此外还有 3 个按脚本动态注入的（不在上面这张静态表里，但每个脚本都有）：
+
+      ▸ state
+          创建脚本时的 FlxG.state —— 切状态会变，所以不能缓存
+      ▸ window
+          Application.current.window（系统窗口）
+      ▸ __script__
+          脚本自己的实例（拿 script.name、script.fileName 等）
+
+    【注意：三个常见误解】
+      ① Stage 没被注入，要用得 import funkin.game.Stage;。② Script / ScriptPack
+      / EventManager 也没注入，同样要 import。③ sys.io.File / sys.FileSystem 没
+      注入 → 脚本不能直接写文件（见第 22 节 ⑪）。
+
+
+  ■ 「能用」的两道门
+  ────────────────
+
+    一个类名能不能在脚本里直接用，取决于两道门，缺一不可：
+
+      1. 注入表（buildDefaultVariables）—— 变量表里有，就能不带包名直接用。
+      2. import 白名单（hscript.Config.ALLOWED_CUSTOM_CLASSES）—— 只有 flixel、
+        funkin、foxlite、modchart.engine、modchart.backend.standalone 下的类能被
+        import / 按名解析。
+
+  ┌─ 代码：同一个类的三种命运 ［haxe］
+  │ // ① 注入了 → 直接写
+  │ FlxG.camera.zoom = 1.2;
+  │ 
+  │ // ② 没注入但 funkin 包下 → import 后可用
+  │ import funkin.game.Stage;
+  │ var s = new Stage("stage");
+  │ 
+  │ // ③ 不在白名单（sys.io / openfl.desktop / haxe.*）→ 用不了
+  │ // import sys.io.File;   ✗ 解析不到
+  └─ 代码结束
+
+
+  ■ 补遗：CoolUtil 与 Paths 里没列到的
+  ──────────────────────────────────
+
+  ● CoolUtil（CoolUtil 是注入变量，直接调）
+
+    ［函数 ｜ 作用］
+      · safeSaveFile(path, content) ｜ 写文件（内部 sys.io.File.saveContent，自
+        动建目录，失败弹错误框）
+      · addMissingFolders(path) ｜ 逐级创建目录
+      · deleteFolder(path) ｜ 递归删除目录
+      · getAnimsListFromFrames(frames) ｜ 从帧集合里提取所有动画名前缀
+      · getAnimsListFromAtlas(atlas) / FromAnimate(spr) / FromSprite(spr) ｜ 同
+        上，按图集类型分
+      · worldToScreenPosition(pos) / pointToScreenPosition(pos) ｜ 世界坐标 ↔ 屏
+        幕坐标
+      · mouseOverlaps(spr) ｜ 鼠标是否在某精灵上
+      · getLuminance(color) ｜ 算颜色亮度（自动选黑/白文字）
+      · positiveModulo(n, m) / positiveModuloInt ｜ 恒正取模（负数也返回正）
+      · getSizeString(bytes) / getSizeString64 ｜ 把字节数变成 12.3 MB
+      · setSpriteSize(spr, w, h) ｜ 按比例设置尺寸
+      · formatNumberRange(range) / parseNumberRange(str) ｜ 1-5,8 ↔ 数组
+      · deepEqual(a, b) ｜ 深比较两个对象
+      · browsePath(path) ｜ 用系统文件管理器打开目录
+      · isNaN(v) / isNotNull(v) ｜ 安全判断
+      · getLastExceptionStack() ｜ 拿上次异常的堆栈（做错误上报）
+
+  ● Paths 里漏掉的两个
+
+    ［函数 ｜ 作用］
+      · Paths.soundRandom(key) ｜ 从 key1 / key2 / key3… 里随机挑一个音效（做随
+        机打击音就靠它）
+      · Paths.vertShader(key) ｜ 顶点着色器路径（.vert，对应 fragShader）
+      · Paths.framesExists(key) ｜ 判断图集是否存在（不抛错）
+      · Paths.assetsTree ｜ 整个资源树（查某个资源来自哪个 mod 时用）
+
+  ┌─ 代码：两个实用例子 ［haxe］
+  │ // 随机打击音：放 sfx/hit1.ogg、hit2.ogg、hit3.ogg
+  │ FlxG.sound.play(Paths.soundRandom("hit"));
+  │ 
+  │ // 存一份自己的统计数据
+  │ var data = { clears: 3, lastSong: "bopeey" };
+  │ CoolUtil.safeSaveFile("my-mod/stats.json", Json.stringify(data));
+  └─ 代码结束
+
+    【注意：写完记得确认路径】
+      safeSaveFile 的路径是相对游戏根目录的。写进 mods/ 里会被下一次 mod 更新覆
+      盖，建议写到 %APPDATA% 或游戏根下的独立目录。
+
+
+  ■ 补遗：Conductor 的 BPM 变更表
+  ─────────────────────────────
+
+    长谱面里 BPM 会变，Conductor 维护一张「变更表」。下面这些是操作它的函数（
+    前面表格没列）。
+
+    ［成员 ｜ 作用］
+      · mapBPMChanges(chart) ｜ 按谱面重建 BPM 变更表（加载歌曲时自动调）
+      · mapCharterBPMChanges(chart) ｜ 编辑器专用版本
+      · curChangeIndex ｜ 当前处于第几个变更段
+      · curChange ｜ 当前变更对象（含 bpm / stepTime 等）
+      · getBeatsInChangeIndex(t, i) / getMeasuresInChangeIndex(t, i) ｜ 按「第 i
+        段」换算拍/小节
+      · getTimeWithIndexInBPM(t, i) / getStepsWithIndexInBPM(t, i) ｜ 按段换算毫
+        秒/step
+      · getTimeInBPM(t) / getTimeWithBPMInSteps(t, i, bpm) ｜ 指定 BPM 下的换算
+      · getMeasuresInTime(t, from) ｜ 毫秒 → 小节数
+
+    【建议：什么时候需要这些】
+      做「跨 BPM 段的时间预测」（比如提前预警一个快段）时才需要。日常用
+      songPosition / curStep 就够。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -5741,6 +6143,115 @@
           在 PlayState 脚本里可以直接写（父对象就是 game）
 
 
+  ■ 跳舞 / 唱歌 / 待机：时序到底怎么算的
+  ────────────────────────────────────
+
+    这几件事经常被搞混：什么时候跳舞、唱歌动画多久后回去跳舞、为什么我的角色一
+    直不动。源码里的规则其实很清晰。
+
+    ［字段 ｜ 默认 ｜ 作用］
+      · holdTime ｜ 4 ｜ 唱完歌之后隔多少个 step 才恢复跳舞（不是秒，也不是拍）
+      · idleSuffix ｜ "" ｜ 待机/跳舞动画名的后缀，拼成 idle<suffix> /
+        danceLeft<suffix>
+      · danceOnBeat ｜ true ｜ 关掉它，角色就永远不跳舞
+      · beatInterval ｜ 1 ｜ 每几拍跳一次（2 = 每两拍）
+      · beatOffset ｜ 0 ｜ 相位偏移，和别人的动作错开
+      · isDanceLeftDanceRight ｜ 看动画 ｜ 有 danceLeft/danceRight 就左右交替，
+        否则用 idle
+
+  ┌─ 代码：beatHit 里的判断（简化自源码） ［haxe］
+  │ // 每拍检查一次能不能跳
+  │ if (danceOnBeat && (curBeat + beatOffset) % (beatInterval * max(floor(4 / stepsPerBeat), 1)) == 0)
+  │ 	tryDance();
+  └─ 代码结束
+
+  ┌─ 代码：tryDance() 的四种情况 ［haxe］
+  │ switch (lastAnimContext) {
+  │ 	case SING | MISS:
+  │ 		// 唱歌/漏键之后：要等够 holdTime 个 step 才回待机
+  │ 		if (lastHit + (Conductor.stepCrochet * holdTime) < Conductor.songPosition)
+  │ 			dance();
+  │ 	case DANCE:
+  │ 		dance();
+  │ 	case LOCK:
+  │ 		if (getAnimName() == null) dance();
+  │ 	default:
+  │ 		if (getAnimName() == null || isAnimFinished()) dance();
+  │ }
+  └─ 代码结束
+
+    【建议：「唱歌姿势停多久」= 调 holdTime】
+      单位是 step：stepCrochet * holdTime 毫秒。默认 4，4/4 拍下约 1 拍。改之前
+      先按 BPM 算一下。
+
+    两个可拦事件：onDance（DanceEvent，cancel 就不跳）和 onTryDance（
+    CancellableEvent，拦在判断之前）。
+
+
+  ■ 遗补：常被忽略但很好用的成员
+  ────────────────────────────
+
+    下面这些在文档前面的表里没列，但做 mod 时经常需要 —— 全部从源码里补的。
+
+  ● Character
+
+    ［成员 ｜ 说明］
+      · getSingAnim(dir, suffix="") ｜ 拿到「某个方向 + 后缀」对应的动画名，不用
+        自己拼字符串
+      · playSingAnimUnsafe(dir, suffix, context, force, reversed, frame) ｜ 跳过
+        检查直接播唱歌动画（playSingAnim 会判断当前状态）
+      · applyXML(xml) / buildXML(?order) ｜ 从 XML 应用 / 反向导出 XML（编辑器在
+        用）
+      · getXMLFromCharName(nameOrChar) ｜ 静态：按名字拿到角色的 XML（会处理
+        fallback）
+      · getIconFromCharName(name, defaultIcon) ｜ 静态：按角色名推图标名
+      · playerOffsets ｜ 是否使用玩家偏移（P2 相关）
+      · characterProperties / characterAnimProperties ｜ 静态白名单：<property>
+        能给角色/动画设哪些属性
+      · FALLBACK_CHARACTER / FALLBACK_DEAD_CHARACTER ｜ 找不到角色时用谁兜底
+
+  ● Stage：5 个可挂的钩子 + 3 个实用工具
+
+  ┌─ 代码：Stage 的钩子签名（都是 public var，直接赋值） ［haxe］
+  │ stage.onXMLLoaded    = function (xml, elems) return elems;         // 解析前改节点列表
+  │ stage.onNodeLoaded    = function (node, sprite) return sprite;      // 每个节点造完精灵后
+  │ stage.onNodeFinished  = function (node, sprite) {}                  // 每个节点处理完
+  │ stage.onAddSprite     = function (sprite) {}                        // 精灵被 add 时
+  │ stage.onXMLPostLoaded = function (xml, elems) return elems;         // 全部加载完
+  └─ 代码结束
+
+    ［成员 ｜ 说明］
+      · DEFAULT_ATTRIBUTES ｜ 静态：
+        ["name","startCamPosX","startCamPosY","zoom","folder"] —— 根节点这些属性不
+        会被塞进 extra
+      · getDefaultPos(name) ｜ 静态：拿某个站位名的默认坐标（dad/gf/bf）
+      · isCharFlipped(posName, def) ｜ 这个站位是不是要翻转
+      · charSpacingX / charSpacingY ｜ 多个角色挤在同一站位时的间距（默认 20 / 0）
+      · applyCharStuff(char, posName, id) / prepareCharacter(char, id) ｜ 把角色
+        按站位摆好（引擎内部流程，改站位逻辑时用）
+      · xmlImportedScripts ｜ 记录这个舞台通过 <use-extension> 引了哪些脚本
+
+  ● PlayState：分数与流程
+
+    ［字段 ｜ 类型 ｜ 说明］
+      · campaignScore ｜ Int ｜ 整周累计分（故事模式）
+      · campaignMisses ｜ Int ｜ 整周累计 Miss
+      · campaignAccuracy ｜ Float（只读） ｜ 整周平均准确率
+      · campaignAccuracyTotal / campaignAccuracyCount ｜ Float ｜ 上面那个值的分
+        子分母
+      · deathCounter ｜ Int（静态） ｜ 死了多少次（跨状态累计）
+      · canDadDie ｜ Bool ｜ 对手角色会不会有死亡动画（对手模式/双人时自动 false）
+      · muteVocalsOnMiss ｜ Bool ｜ Miss 时静音人声
+      · doIconBop ｜ Bool ｜ 图标跟拍跳动
+      · introLength ｜ Int ｜ 开场倒数长度（拍）
+      · maxMisses ｜ Float ｜ 允许的 Miss 上限（可能是 POSITIVE_INFINITY）
+      · scrollSpeedTween ｜ FlxTween ｜ 当前的流速补间（改流速时先看它）
+      · defaultDisplayRating / defaultDisplayCombo ｜ Bool ｜ 默认是否显示判定 /
+        连击
+      · ratingNum ｜ Int ｜ 当前连击数（判定用）
+      · accFormat ｜ FlxTextFormat ｜ 准确率文字格式
+
+
 ────────────────────────────────────────────────────────────────────────
 　第 30 节　回调全表：引擎什么时候调你
 　ALL CALLBACKS
@@ -5877,6 +6388,112 @@
     同一首歌的脚本按 ScriptPack 里的注册顺序执行：先 data/ 里的公共脚本，再
     songs/<歌>/scripts/，再按难度子目录。顺序会影响「谁覆盖谁」，所以同一件事
     别在两个脚本里各写一遍。
+
+
+  ■ 补遗：另外 53 个回调（按出处分的）
+  ──────────────────────────────────
+
+    上面那张表是常用回调。下面这些是从源码里逐条挖出来的 —— 每一个都能在脚本里
+    定义，引擎会在对应时机调用。
+
+  ● 状态 / 子状态
+
+    ［回调 ｜ 时机］
+      · onOpenSubState(sub) ｜ 打开子状态之前（可改）
+      · onCloseSubState(sub) ｜ 关闭子状态之前
+      · onClosePost() ｜ 子状态关完之后
+      · onStateSwitch(next) ｜ 切换状态时
+      · onResize(w, h) ｜ 窗口尺寸变化
+      · onSave() ｜ 存档要写入时
+      · onClose() ｜ 状态被关闭（CancellableEvent）
+      · onError(code, msg) ｜ 出错时
+
+  ● 菜单
+
+    ［回调 ｜ 时机］
+      · onChangeDifficulty(old, cur, change) ｜ 故事/自由模式切难度
+      · onChangeWeek(old, cur, change) ｜ 切周
+      · onChangeSelection(old, cur, change) ｜ 光标移动
+      · onChangeCoopMode(old, cur, change) ｜ 切双人模式
+      · onWeekSelect(week, weekNum) ｜ 选中某一周
+      · onGoBack() ｜ 按返回（可 cancel）
+      · onUpdateOptionsAlpha(alpha) ｜ 自由游玩选项栏淡入淡出
+
+  ● 游戏流程 / 过场
+
+    ［回调 ｜ 时机］
+      · preGameReset() ｜ 重置游戏之前
+      · postGameReset() ｜ 重置之后
+      · postGameStart() ｜ 游戏开始之后
+      · onRestartCutscene(e) ｜ 重播过场
+      · onResumeCutscene(e) ｜ 继续过场
+      · postScreenCenter() ｜ 对象居中之后（UI 类脚本常用）
+
+  ● 对话系统
+
+    ［回调 ｜ 时机］
+      · postStartText() ｜ 一句开始打字后
+      · postResetText() ｜ 文本重置后
+      · postNext() ｜ 翻到下一句
+      · postShow(e) / postHide(e) ｜ 角色出场 / 退场之后
+      · postPlayBubbleAnim(e) ｜ 气泡动画播完
+      · postPopupChar(e) ｜ 角色弹动之后
+      · showTweenCompleted(tween) / hideTweenCompleted(tween) ｜ 出场 / 退场补间
+        结束
+      · loadingError(msg) ｜ 对话资源加载失败
+
+  ● 音条 / 设置类 UI
+
+    ［回调 ｜ 时机］
+      · regenerateBars(e) ｜ 音条要重建
+      · postRegenerateBars() ｜ 重建之后
+      · regenerateBarsArray(e) / postRegenerateBarsArray() ｜ 同上，数组版
+      · saveSoundPreferences(e) / postSaveSoundPreferences() ｜ 保存音量设置前后
+      · reloadText(e) / postReloadText(e) ｜ 文本重载前后
+      · reloadDtf(e) / postReloadDtf() ｜ 动态文本格式重载前后
+
+  ● ⭐ 资源提供者钩子（脚本给引擎返回值）
+
+    这一类不是「通知你」，而是「引擎来问你要东西」。定义它们就能接管资源加载
+    —— 比如让引擎从网络/加密包取图。
+
+    ［回调 ｜ 引擎传入 ｜ 你返回］
+      · getAssetPath(path) ｜ 资源路径 ｜ 新路径（返回 null 走默认）
+      · getImage(id) ｜ 资源 id ｜ BitmapData
+      · getFont(id) ｜ 资源 id ｜ 字体对象
+      · getBytes(id) ｜ 资源 id ｜ ByteArray
+      · getAudioBuffer(id) ｜ 资源 id ｜ 音频缓冲
+      · getEditedTime(asset) ｜ 资源 ｜ 修改时间（用于缓存判断）
+      · generateIcon(name) ｜ 图标名 ｜ 图标对象
+
+  ┌─ 代码：例：把所有图片重定向到自己的目录 ［haxe］
+  │ function getAssetPath(path:String) {
+  │ 	if (path.indexOf("characters/") >= 0)
+  │ 		return "my-mod/" + path;   // 返回新路径
+  │ 	return null;                    // 其余走默认
+  │ }
+  └─ 代码结束
+
+    【注意：别在这里做重活】
+      这些钩子会被每一次资源请求调用。在里面做文件 IO 或遍历，加载时间会爆炸。要
+      查表也先建好 Map。
+
+  ● Discord RPC（data/discord.hx）
+
+    ［回调 ｜ 时机］
+      · onReady(user) ｜ 连上 Discord
+      · onDisconnected(code, msg) / onError(code, msg) ｜ 断开 / 出错
+      · onJoinGame(secret) / onSpectateGame(secret) / onJoinRequest(req) ｜ 加入
+        / 观战 / 收到邀请
+      · onAnyResponse(data) ｜ 任意回应
+
+  ● 其他
+
+    ［回调 ｜ 时机］
+      · tryUpdateHitbox(sprite) ｜ 要更新某个精灵的碰撞箱时
+      · mouseModeChanged(sprite) ｜ 鼠标模式变化
+      · processGLData(e) / processGLDataPost(e) ｜ 着色器 GL 数据处理前后
+      · updateGL() ｜ 每帧 GL 更新
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -6041,6 +6658,29 @@
   │ 	boyfriend.animation.play("idle-alt");
   │ }
   └─ 代码结束
+
+
+  ■ 补遗：9 个之前没列的事件类
+  ──────────────────────────
+
+    前面那张表覆盖了 43 个事件类，这里是源码里剩下的 9 个（共 53 个）。
+
+    ［事件类 ｜ 字段 ｜ 用在哪］
+      · NoteUpdateEvent ｜ note elapsed strum ｜ 音符每帧更新（做自定义音符行为）
+      · SimpleNoteEvent ｜ note ｜ 只要一个音符的场合
+      · ResizeEvent ｜ width height oldWidth oldHeight ｜ 窗口尺寸变化
+      · TransitionCreationEvent ｜ transOut newState ｜ 创建过场过渡
+      · ShaderProcessEvent ｜ source storageType ｜ 着色器源码处理（编译前改代码）
+      · SoundTrayShowEvent ｜ up ｜ 音量条弹出
+      · SoundTrayTextEvent ｜ displayTxt y checkIfNull reloadDefaultTextFormat
+        ｜ 音量条文字
+      · DiscordPresenceUpdateEvent ｜ presence ｜ Discord 状态更新（可改按钮/文
+        案）
+      · DynamicEvent ｜ value1~value5 ｜ 通用占位事件（自带 5 个任意值）
+
+    【建议：ShaderProcessEvent.source 能改 GLSL 源码】
+      在编译前拦下 shader 源码做字符串替换 —— 做「给所有着色器注入一个 uniform」
+      这种需求时就靠它。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -6898,7 +7538,7 @@
   ──────────────────
 
       ▸ 库
-          funkin-modchart（作者 TheoDev，MIT）
+          funkin-modchart（作者 Theo，GitHub 账号现为 dotaxel；MIT 许可）
       ▸ 编译开关
           MODCHARTING_FEATURES（project.xml 里默认开，除非 STRIPPED_COMPILE）
       ▸ 引擎标识
@@ -7009,6 +7649,105 @@
       · 卡顿 ｜ 长按细分太高 / 修饰器叠加太多
 
 
+  ■ ⑦ 真实函数表（modchart.Manager）
+  ────────────────────────────────
+
+    上面说「具体函数看库文档」—— 现在直接给你。库的接口分三块：修饰器、事件、
+    Playfield。
+
+  ● 修饰器：调一个值
+
+    ［方法 ｜ 作用］
+      · m.addModifier(mod, field = -1) ｜ 启用某个修饰器（之后才能调它的百分比）
+      · m.setPercent(mod, value, field = -1) ｜ 直接设修饰器数值（0~1 之间，可超）
+      · m.getPercent(mod, field = -1) ｜ 读当前值
+      · m.registerModifier(name, mod) ｜ 注册你自己的修饰器
+
+  ● 事件：按拍调值
+
+    ［方法 ｜ 作用］
+      · m.set(mod, beat, value, player = -1, field = -1) ｜ 到第 beat 拍时把 mod
+        设为 value
+      · m.ease(mod, beat, length, ease, value, player = -1, field = -1) ｜ 从当
+        前值缓动到 value，持续 length 拍
+      · m.callback(beat, func, field = -1) ｜ 到拍时执行函数
+      · m.repeater(beat, length, func, field = -1) ｜ 一段时间内反复执行
+      · m.addEvent(event, field = -1) ｜ 加自定义事件对象
+
+  ● Playfield
+
+    ［方法 ｜ 作用］
+      · m.addPlayfield() ｜ 新增一个 playfield（加了之后再调修饰器，要对新 field
+        重设）
+      · m.playfields ｜ 所有 playfield 的数组
+      · Manager.instance ｜ 静态单例，不想传引用时用它
+
+  ┌─ 代码：一个能跑的例子 ［haxe］
+  │ import modchart.Manager;
+  │ 
+  │ var m:Manager = null;
+  │ 
+  │ function postCreate() {
+  │ 	m = new Manager();
+  │ 	add(m);
+  │ 
+  │ 	// 启用"旋转"和"缩放"两个修饰器
+  │ 	m.addModifier("Rotate");
+  │ 	m.addModifier("Scale");
+  │ 
+  │ 	// 第 4 拍开始，用 1 拍时间缓动到 45 度
+  │ 	m.ease("Rotate", 4, 1, FlxEase.quadOut, 0.25);
+  │ 
+  │ 	// 第 8 拍缩到 0.8
+  │ 	m.set("Scale", 8, 0.8);
+  │ 
+  │ 	// 第 16 拍执行自定义逻辑
+  │ 	m.callback(16, function () trace("第 16 拍到了"));
+  │ }
+  └─ 代码结束
+
+    【建议：数值是 0~1 的比例】
+      setPercent / ease 传的是百分比，不是像素或角度。具体怎么映射成角度/位移由
+      修饰器自己决定，所以「0.25 的 Rotate」在不同 playfield 上看着可能不一样。
+
+
+  ■ ⑧ 32 个内置修饰器
+  ─────────────────
+
+    mod 参数就是下面这些名字（大小写要一致）：
+
+    ［分类 ｜ 修饰器］
+      · 位移 / 旋转 ｜ Rotate CenterRotate LocalRotate FieldRotate Skew
+        Transform Zoom Scale
+      · 位置变形 ｜ Confusion Drunk Tipsy Bumpy Tornado ZigZag Square Invert
+        Reverse
+      · Schmovin 系 ｜ SchmovinDrunk SchmovinTipsy SchmovinTornado
+      · 外观 ｜ Stealth ArrowShape Radionic Drugged Boost Bounce SawTooth Beat
+      · 结构 ｜ PathModifier ReceptorScroll OpponentSwap Infinite
+
+    名字基本沿用了 NotITG / Schmovin 的那套，会玩 NotITG 的话几乎零成本。
+
+
+  ■ ⑨ 先说清楚：这个库已经停止维护
+  ──────────────────────────────
+
+    库的 README 顶上写着 UNMAINTAINED，作者（axel）明确说在排期废弃，后继是
+    FlxModchart。同时列了一串已知问题：
+
+      · 相机解析不一致（different camera resolving）
+      · 渲染器里 FlxSprite / FlxFrame 属性实现不全或为 null
+      · 顶点着色问题（可能和 flixel 批处理有关）
+      · 持续掉帧 / 掉帧尖峰
+      · 渲染定制性差；不能渲染「没有箭头的 FlxSprite」（NotITG 的 actor 那种）
+      · 长按只支持「分段式」渲染（0.2.7 那套）
+      · 作者自己说架构不好、没有测试
+
+    【注意：所以要不要用】
+      做能跑的特效没问题；想长期维护、追求稳定渲染的话要有心理准备。作者建议关注
+      后续的 FlxModchart。另外仓库已经从 TheoDevelops 转到 dotaxel 名下，旧链接
+      会跳转。
+
+
   ■ ⑦ 为什么它要「适配器」
   ──────────────────────
 
@@ -7032,6 +7771,37 @@
 
     建议：先用引擎事件，撑不住了再上 modchart。很多「看起来像 modchart」的效果，
     其实几个 FlxTween 就够了。
+
+
+  ■ ⑩ 自己写一个修饰器
+  ──────────────────
+
+    registerModifier(name, mod) 可以注册自定义修饰器 —— 适合做库自带那 32 个之
+    外的效果。
+
+  ┌─ 代码：思路（继承 Modifier，实现输出） ［haxe］
+  │ import modchart.engine.modifiers.Modifier;
+  │ 
+  │ // 自定义修饰器需要继承 Modifier 并实现它的输出方法
+  │ // 具体签名以 modchart/engine/modifiers/Modifier.hx 为准
+  │ 
+  │ m.registerModifier("MyEffect", new MyEffect());
+  │ 
+  │ // 之后就能像内置的一样用
+  │ m.addModifier("MyEffect");
+  │ m.set("MyEffect", 4, 0.5);
+  └─ 代码结束
+
+
+  ■ ⑪ 和「纯 FlxTween 演出」怎么选
+  ──────────────────────────────
+
+    回头看第 22 节的取舍表：如果只是想让箭头晃一下，FlxTween 三行就够。
+    modchart 真正的价值在：多 playfield、3D 相机、箭头轨迹可视化、以及「按拍编
+    排一大串修饰器」的工作流。
+
+    一个判断标准：你的效果能不能写成「第 N 拍把 X 设成 Y」？ 能，而且有一堆这
+    样的点 → 用 modchart；只是两三个一次性动画 → 别引入。
 
 
 ────────────────────────────────────────────────────────────────────────

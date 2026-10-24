@@ -237,7 +237,33 @@
               "`onAlphaUpdate`（FreeplayAlphaUpdateEvent）：列表滚动时逐项触发，可以做「越远越透明」之类的效果。",
               "`data/states/FreeplayState.hx` 可以整体接管这个界面。"
             ]
-          }
+          },
+          { h: '歌单到底是怎么拼出来的（源码级）' },
+          { p: "「为什么我的 mod 装上之后原版的歌全没了」——答案在这段逻辑里。`FreeplaySonglist.get()` 按 `SONGS_LIST_MOD_MODE` 决定拼接顺序：" },
+          {
+            table: {
+              head: ['模式', '实际执行顺序', '结果'],
+              rows: [
+                ['`override`（默认）', '先 MODS，**只有在 MODS 一首都没找到时**才补 SOURCE', 'mod 有歌 → 原版全消失'],
+                ['`prepend`', 'MODS → SOURCE', 'mod 的歌在前'],
+                ['`append`', 'SOURCE → MODS', 'mod 的歌在后']
+              ]
+            }
+          },
+          { callout: { kind: 'warn', title: '`override` 是个容易误伤的默认值', text: "很多人第一次做 mod 会发现原版歌单空了——因为默认 `override`。想让自己的歌排进去，用 `SONGS_LIST_MOD_MODE=\"append\"`。" } },
+          { h: '`freeplaySonglist.txt`：手动指定顺序和曲目' },
+          { p: "不想用「扫目录」的自动顺序，就用 txt 手动列。**一行一首**，可以带子目录前缀：" },
+          { code: { lang: 'ini', title: 'data/config/freeplaySonglist.txt', src: 'bopeebo\nfresh\ndadbattle\n# 嵌套目录也行\nmy-album/song1\nmy-album/song2' } },
+          {
+            kv: [
+              ['新的正确路径', '`data/config/freeplaySonglist.txt`'],
+              ['旧的废弃路径', '`data/freeplaySonglist.txt` —— 还能读，但日志会警告 `is deprecated`'],
+              ['扫描兜底', '没有 txt 时才去扫 `songs/` 目录'],
+              ['每个条目', '会调 `Chart.loadChartMeta()` 读它的 `meta.json`'],
+              ['嵌套目录', '支持子文件夹；**文件夹会排在歌曲前面**（代码里专门做了 `endsWith("/")` 的分流）']
+            ]
+          },
+          { p: "顺带一个细节：`getSongsFromSource()` 的返回值是**反的** —— 找到歌返回 `false`，没找到返回 `true`。`override` 模式就是靠「返回 true 才补 SOURCE」来工作的。读源码时别被绕进去。" },
         ]
       },
 
@@ -494,7 +520,91 @@
               "`Streamed Music` 关掉会更稳但更吃内存 —— 低配机器反而应该**开**着。",
               "`Ghost Tapping` 关掉之后，很多人会突然发现自己「其实一直在乱按」。"
             ]
-          }
+          },
+          { h: '设置项的完整字段表（`Options` 里全部 86 个非按键字段）' },
+          { p: "界面上的每一项背后都是 `Options` 的一个静态字段，改它等于改设置。下面是**按功能分组**的全表（默认值取自源码）。" },
+          { h4: '画面 / 显示' },
+          { table: { head: ['字段', '默认', '含义'], rows: [
+    ['`naughtyness`', '`true`', '主菜单「彩蛋」开关'],
+    ['`downscroll`', '`false`', '下滚'],
+    ['`centeredFields`', '`false`', '按居中方式排轨道（对应 Flag `ALLOW_CENTERED_FIELDS`）'],
+    ['`flashingMenu`', '`true`', '主菜单闪烁动画'],
+    ['`camZoomOnBeat`', '`true`', '跟拍镜头缩放'],
+    ['`antialiasing`', '`true`', '全局抗锯齿'],
+    ['`week6PixelPerfect`', '`true`', 'Week 6 像素完美渲染'],
+    ['`colorHealthBar`', '`true`', '血条变色（按角色主色）'],
+    ['`intensiveBlur`', '`true`', '高质量模糊（关掉更省 GPU）'],
+    ['`quality`', '`1`', '画质档位（影响纹理过滤等）'],
+    ['`gpuOnlyBitmaps`', '`true`（mac/web 为 false）', '位图只留显存'],
+    ['`lowMemoryMode`', '`false`', '低内存模式（只加载 `low-memory` 分组的舞台元素）'],
+    ['`splashesEnabled`', '`true`', '打击溅射特效'],
+    ['`gameplayShaders`', '`true`', '游戏内 shader']
+  ] } },
+  { h4: 'FPS 计数器（6 个子开关）' },
+  { table: { head: ['字段', '默认', '含义'], rows: [
+    ['`fpsCounter`', '`true`', 'F3 面板总开关'],
+    ['`fpsCounterConductor`', '`true`', '显示节拍信息'],
+    ['`fpsCounterFlixel`', '`true`', '显示 Flixel 状态'],
+    ['`fpsCounterSystem`', '`true`', '显示系统信息'],
+    ['`fpsCounterAssets`', '`true`', '显示资源统计'],
+    ['`fpsCounterStats`', '`true`', '显示 `totalDC` 等渲染统计（**做性能优化就看这个**）']
+  ] } },
+  { h4: '系统 / 运行时' },
+  { table: { head: ['字段', '默认', '含义'], rows: [
+    ['`autoPause`', '`true`', '失焦自动暂停'],
+    ['`discordRPC`', '`true`', 'Discord 状态'],
+    ['`betaUpdates`', '`false`', '接收测试版更新'],
+    ['`allowConfigWarning`', '`true`', '显示 mod 配置警告页'],
+    ['`useNativeConsole`', '`false`', '用 Windows 原生控制台而不是游戏内控制台'],
+    ['`imguiMultiViewport`', '`true`（linux 为 false）', 'ImGui 多视口'],
+    ['`framerate`', '`120`', '帧率上限'],
+    ['`devMode`', '`false`', '开发者模式（开关一堆隐藏界面）'],
+    ['`legacyMemoryCounter`', '`false`', '旧版内存计数器'],
+    ['`legacyModMenuNames`', '`false`', 'Mod 菜单用旧命名'],
+    ['`lastLoadedMod`', '`null`', '上次加载的 mod（启动时自动选）'],
+    ['`disabledAddons`', '`[]`', '被禁用的 addons 列表']
+  ] } },
+  { h4: '音频' },
+  { table: { head: ['字段', '默认', '含义'], rows: [
+    ['`volume`', '`1`', '主音量'],
+    ['`volumeMusic`', '`1`', '音乐音量'],
+    ['`volumeSFX`', '`1`', '音效音量'],
+    ['`streamedMusic`', '`true`', '音乐流式加载（低配应开）'],
+    ['`streamedVocals`', '`true`', '人声流式加载'],
+    ['`songOffset`', '`0`', '打歌偏移（毫秒）'],
+    ['`songOffsetAffectEditors`', '`false`', '偏移是否也作用于编辑器']
+  ] } },
+  { h4: '编辑器（`editor*` / `charter*`）' },
+  { table: { head: ['字段', '默认', '含义'], rows: [
+    ['`editorSFX`', '`true`', '编辑器音效'],
+    ['`editorsResizable`', '`true`', '编辑器窗口可缩放'],
+    ['`bypassEditorsResize`', '`false`', '强制允许缩放'],
+    ['`maxUndos`', '`120`', '撤销栈上限'],
+    ['`editorCharterPrettyPrint`', '`false`', '谱面 JSON 美化输出'],
+    ['`editorCharacterPrettyPrint`', '`true`', '人物 XML 美化输出'],
+    ['`editorStagePrettyPrint`', '`true`', '舞台 XML 美化输出'],
+    ['`charterSwapEventSides`', '`false`', '事件轨道左右互换'],
+    ['`charterMetronomeEnabled`', '`false`', '节拍器'],
+    ['`charterShowSections`', '`true`', '显示小节分隔线'],
+    ['`charterShowBeats`', '`true`', '显示拍分隔线'],
+    ['`charterShowCameraHighlights`', '`true`', '显示相机事件高亮'],
+    ['`charterEnablePlaytestScripts`', '`true`', '试玩时也跑脚本'],
+    ['`charterRainbowWaveforms`', '`false`', '彩虹波形'],
+    ['`charterLowDetailWaveforms`', '`false`', '低精度波形'],
+    ['`charterAutoSaves`', '`true`', '自动保存'],
+    ['`charterAutoSaveTime`', '`300`', '自动保存间隔（秒）'],
+    ['`charterAutoSaveWarningTime`', '`5`', '保存前提示秒数'],
+    ['`charterAutoSavesSeparateFolder`', '`false`', '存到独立目录'],
+    ['`charterPauseQuant`', '`false`', '暂停时按拍对齐'],
+    ['`characterHitbox` / `characterCamera` / `characterAxis`', '`true`', '人物编辑器里的三个显示开关'],
+    ['`characterDragging`', '`true`', '允许鼠标拖动偏移'],
+    ['`playAnimOnOffset`', '`false`', '调偏移时自动播动画'],
+    ['`stageSelected`', '`null`', '上次打开的舞台']
+  ] } },
+  { h4: '控制台过滤器（13 个）' },
+  { p: "`F2` 控制台里每个过滤按钮对应一个字段，默认全 `true`（都显示）：" },
+  { code: { lang: 'haxe', src: 'consoleTimeFilter      consoleTypeFilter\nconsoleInfoFilter      consoleWarningFilter\nconsoleErrorFilter     consoleTraceFilter\nconsoleVerboseFilter   consoleCommandsFilter\nconsoleClassFilter     consoleFunctionFilter\nconsoleBasicTypesFilter consoleObjectsFilter\nconsoleScriptsFilter\n\n// 另有\nconsoleCountDuplicatedOutput  // 重复日志合并计数，默认 true' } },
+  { callout: { kind: 'tip', title: '怎么用这张表', text: "想让玩家默认就关掉某个效果？在你的 mod 里 `Options.xxx = false;`（记得 `Options.save()`）。**别直接改源码里的默认值** —— 那是给所有人改的。" } },
         ]
       },
 

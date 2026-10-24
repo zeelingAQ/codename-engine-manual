@@ -211,7 +211,7 @@
               ],
               [
                 "游戏对象",
-                "`PlayState` `GameOverSubstate` `HealthIcon` `HudCamera` `Note` `Strum` `StrumLine` `Character` `Boyfriend`(兼容名) `Stage`"
+                "`PlayState` `GameOverSubstate` `HealthIcon` `HudCamera` `Note` `Strum` `StrumLine` `Character` `Boyfriend`(兼容名) —— **`Stage` 不在注入表里**，要用得 `import funkin.game.Stage;`"
               ],
               [
                 "菜单/状态",
@@ -235,7 +235,7 @@
               ],
               [
                 "脚本对象",
-                "`Script` `ScriptPack` `EventManager`"
+                "`__script__`(当前脚本实例) —— `Script` / `ScriptPack` / `EventManager` **不是注入变量**，需 `import funkin.backend.scripting.XXX;`"
               ]
             ]
           }
@@ -819,6 +819,276 @@
               "打歌逻辑用 `game`，通用逻辑用 `state`，都要判空"
             ]
           ]
+        },
+        {
+          "h": "注入变量的真相（按 `Script.hx` 逐条核对）"
+        },
+        {
+          "p": "第 28 节上面那张表是「分类速查」，这里是**源码事实**：`Script.buildDefaultVariables()` 一共注入 **107 个名字**，分成 6 组。"
+        },
+        {
+          "table": {
+            "head": [
+              "组",
+              "数量",
+              "内容"
+            ],
+            "rows": [
+              [
+                "Haxe 标准库",
+                "10",
+                "`Std` `Math` `Reflect` `StringTools` `Json` `Xml` `Type` `Date` `Lambda` `Sys`"
+              ],
+              [
+                "OpenFL / Lime",
+                "4",
+                "`BlendMode` `Assets` `Application` `Main`"
+              ],
+              [
+                "Flixel",
+                "19",
+                "`FlxG` `FlxSprite` `FlxBasic` `FlxCamera` `FlxEase` `FlxTween` `FlxSound` `FlxAssets` `FlxMath` `FlxGroup` `FlxTypedGroup` `FlxSpriteGroup` `FlxTypeText` `FlxText` `FlxTimer` `FlxPoint` `FlxAxes` `FlxColor` …"
+              ],
+              [
+                "foxlite（3D）",
+                "36",
+                "全部 `Fox*` 类，**只在开了 `THREE_D_SUPPORT && foxlite` 的构建里注入**"
+              ],
+              [
+                "引擎对象",
+                "27",
+                "`PlayState` `Character` `Note` `Strum` `StrumLine` `Options` `Paths` `Conductor` `Flags` `Alphabet` `ModState` …"
+              ],
+              [
+                "引擎工具",
+                "11",
+                "`CoolUtil` `IniUtil` `XMLUtil` `ZipUtil` `MarkdownUtil` `EngineUtil` `ThreadUtil` `MemoryUtil` `BitmapUtil` `TranslationUtil` `translate`"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "此外还有 **3 个按脚本动态注入**的（不在上面这张静态表里，但每个脚本都有）："
+        },
+        {
+          "kv": [
+            [
+              "`state`",
+              "创建脚本时的 `FlxG.state` —— 切状态会变，所以不能缓存"
+            ],
+            [
+              "`window`",
+              "`Application.current.window`（系统窗口）"
+            ],
+            [
+              "`__script__`",
+              "脚本自己的实例（拿 `script.name`、`script.fileName` 等）"
+            ]
+          ]
+        },
+        {
+          "callout": {
+            "kind": "warn",
+            "title": "三个常见误解",
+            "text": "① **`Stage` 没被注入**，要用得 `import funkin.game.Stage;`。② `Script` / `ScriptPack` / `EventManager` 也没注入，同样要 import。③ `sys.io.File` / `sys.FileSystem` 没注入 → 脚本不能直接写文件（见第 22 节 ⑪）。"
+          }
+        },
+        {
+          "h": "「能用」的两道门"
+        },
+        {
+          "p": "一个类名能不能在脚本里直接用，取决于两道门，**缺一不可**："
+        },
+        {
+          "ol": [
+            "**注入表**（`buildDefaultVariables`）—— 变量表里有，就能不带包名直接用。",
+            "**import 白名单**（`hscript.Config.ALLOWED_CUSTOM_CLASSES`）—— 只有 `flixel`、`funkin`、`foxlite`、`modchart.engine`、`modchart.backend.standalone` 下的类能被 `import` / 按名解析。"
+          ]
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "同一个类的三种命运",
+            "src": "// ① 注入了 → 直接写\nFlxG.camera.zoom = 1.2;\n\n// ② 没注入但 funkin 包下 → import 后可用\nimport funkin.game.Stage;\nvar s = new Stage(\"stage\");\n\n// ③ 不在白名单（sys.io / openfl.desktop / haxe.*）→ 用不了\n// import sys.io.File;   ✗ 解析不到"
+          }
+        },
+        {
+          "h": "补遗：`CoolUtil` 与 `Paths` 里没列到的"
+        },
+        {
+          "h4": "`CoolUtil`（`CoolUtil` 是注入变量，直接调）"
+        },
+        {
+          "table": {
+            "head": [
+              "函数",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`safeSaveFile(path, content)`",
+                "**写文件**（内部 `sys.io.File.saveContent`，自动建目录，失败弹错误框）"
+              ],
+              [
+                "`addMissingFolders(path)`",
+                "逐级创建目录"
+              ],
+              [
+                "`deleteFolder(path)`",
+                "递归删除目录"
+              ],
+              [
+                "`getAnimsListFromFrames(frames)`",
+                "从帧集合里提取所有动画名前缀"
+              ],
+              [
+                "`getAnimsListFromAtlas(atlas)` / `FromAnimate(spr)` / `FromSprite(spr)`",
+                "同上，按图集类型分"
+              ],
+              [
+                "`worldToScreenPosition(pos)` / `pointToScreenPosition(pos)`",
+                "世界坐标 ↔ 屏幕坐标"
+              ],
+              [
+                "`mouseOverlaps(spr)`",
+                "鼠标是否在某精灵上"
+              ],
+              [
+                "`getLuminance(color)`",
+                "算颜色亮度（自动选黑/白文字）"
+              ],
+              [
+                "`positiveModulo(n, m)` / `positiveModuloInt`",
+                "恒正取模（负数也返回正）"
+              ],
+              [
+                "`getSizeString(bytes)` / `getSizeString64`",
+                "把字节数变成 `12.3 MB`"
+              ],
+              [
+                "`setSpriteSize(spr, w, h)`",
+                "按比例设置尺寸"
+              ],
+              [
+                "`formatNumberRange(range)` / `parseNumberRange(str)`",
+                "`1-5,8` ↔ 数组"
+              ],
+              [
+                "`deepEqual(a, b)`",
+                "深比较两个对象"
+              ],
+              [
+                "`browsePath(path)`",
+                "用系统文件管理器打开目录"
+              ],
+              [
+                "`isNaN(v)` / `isNotNull(v)`",
+                "安全判断"
+              ],
+              [
+                "`getLastExceptionStack()`",
+                "拿上次异常的堆栈（做错误上报）"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "`Paths` 里漏掉的两个"
+        },
+        {
+          "table": {
+            "head": [
+              "函数",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`Paths.soundRandom(key)`",
+                "从 `key1` / `key2` / `key3`… 里随机挑一个音效（**做随机打击音就靠它**）"
+              ],
+              [
+                "`Paths.vertShader(key)`",
+                "顶点着色器路径（`.vert`，对应 `fragShader`）"
+              ],
+              [
+                "`Paths.framesExists(key)`",
+                "判断图集是否存在（不抛错）"
+              ],
+              [
+                "`Paths.assetsTree`",
+                "整个资源树（查某个资源来自哪个 mod 时用）"
+              ]
+            ]
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "两个实用例子",
+            "src": "// 随机打击音：放 sfx/hit1.ogg、hit2.ogg、hit3.ogg\nFlxG.sound.play(Paths.soundRandom(\"hit\"));\n\n// 存一份自己的统计数据\nvar data = { clears: 3, lastSong: \"bopeey\" };\nCoolUtil.safeSaveFile(\"my-mod/stats.json\", Json.stringify(data));"
+          }
+        },
+        {
+          "callout": {
+            "kind": "warn",
+            "title": "写完记得确认路径",
+            "text": "`safeSaveFile` 的路径是**相对游戏根目录**的。写进 `mods/` 里会被下一次 mod 更新覆盖，建议写到 `%APPDATA%` 或游戏根下的独立目录。"
+          }
+        },
+        {
+          "h": "补遗：`Conductor` 的 BPM 变更表"
+        },
+        {
+          "p": "长谱面里 BPM 会变，`Conductor` 维护一张「变更表」。下面这些是操作它的函数（前面表格没列）。"
+        },
+        {
+          "table": {
+            "head": [
+              "成员",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`mapBPMChanges(chart)`",
+                "按谱面重建 BPM 变更表（加载歌曲时自动调）"
+              ],
+              [
+                "`mapCharterBPMChanges(chart)`",
+                "编辑器专用版本"
+              ],
+              [
+                "`curChangeIndex`",
+                "当前处于第几个变更段"
+              ],
+              [
+                "`curChange`",
+                "当前变更对象（含 `bpm` / `stepTime` 等）"
+              ],
+              [
+                "`getBeatsInChangeIndex(t, i)` / `getMeasuresInChangeIndex(t, i)`",
+                "按「第 i 段」换算拍/小节"
+              ],
+              [
+                "`getTimeWithIndexInBPM(t, i)` / `getStepsWithIndexInBPM(t, i)`",
+                "按段换算毫秒/step"
+              ],
+              [
+                "`getTimeInBPM(t)` / `getTimeWithBPMInSteps(t, i, bpm)`",
+                "指定 BPM 下的换算"
+              ],
+              [
+                "`getMeasuresInTime(t, from)`",
+                "毫秒 → 小节数"
+              ]
+            ]
+          }
+        },
+        {
+          "callout": {
+            "kind": "tip",
+            "title": "什么时候需要这些",
+            "text": "做「跨 BPM 段的时间预测」（比如提前预警一个快段）时才需要。日常用 `songPosition` / `curStep` 就够。"
+          }
         }
       ]
     },
@@ -1686,6 +1956,256 @@
               "在 PlayState 脚本里可以直接写（父对象就是 game）"
             ]
           ]
+        },
+        {
+          "h": "跳舞 / 唱歌 / 待机：时序到底怎么算的"
+        },
+        {
+          "p": "这几件事经常被搞混：**什么时候跳舞**、**唱歌动画多久后回去跳舞**、**为什么我的角色一直不动**。源码里的规则其实很清晰。"
+        },
+        {
+          "table": {
+            "head": [
+              "字段",
+              "默认",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`holdTime`",
+                "`4`",
+                "唱完歌之后**隔多少个 step** 才恢复跳舞（**不是秒，也不是拍**）"
+              ],
+              [
+                "`idleSuffix`",
+                "`\"\"`",
+                "待机/跳舞动画名的后缀，拼成 `idle<suffix>` / `danceLeft<suffix>`"
+              ],
+              [
+                "`danceOnBeat`",
+                "`true`",
+                "关掉它，角色就永远不跳舞"
+              ],
+              [
+                "`beatInterval`",
+                "`1`",
+                "每几拍跳一次（`2` = 每两拍）"
+              ],
+              [
+                "`beatOffset`",
+                "`0`",
+                "相位偏移，和别人的动作错开"
+              ],
+              [
+                "`isDanceLeftDanceRight`",
+                "看动画",
+                "有 `danceLeft`/`danceRight` 就左右交替，否则用 `idle`"
+              ]
+            ]
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "beatHit 里的判断（简化自源码）",
+            "src": "// 每拍检查一次能不能跳\nif (danceOnBeat && (curBeat + beatOffset) % (beatInterval * max(floor(4 / stepsPerBeat), 1)) == 0)\n\ttryDance();"
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "tryDance() 的四种情况",
+            "src": "switch (lastAnimContext) {\n\tcase SING | MISS:\n\t\t// 唱歌/漏键之后：要等够 holdTime 个 step 才回待机\n\t\tif (lastHit + (Conductor.stepCrochet * holdTime) < Conductor.songPosition)\n\t\t\tdance();\n\tcase DANCE:\n\t\tdance();\n\tcase LOCK:\n\t\tif (getAnimName() == null) dance();\n\tdefault:\n\t\tif (getAnimName() == null || isAnimFinished()) dance();\n}"
+          }
+        },
+        {
+          "callout": {
+            "kind": "tip",
+            "title": "「唱歌姿势停多久」= 调 holdTime",
+            "text": "单位是 **step**：`stepCrochet * holdTime` 毫秒。默认 4，4/4 拍下约 1 拍。改之前先按 BPM 算一下。"
+          }
+        },
+        {
+          "p": "两个可拦事件：**`onDance`**（`DanceEvent`，cancel 就不跳）和 **`onTryDance`**（`CancellableEvent`，拦在判断之前）。"
+        },
+        {
+          "h": "遗补：常被忽略但很好用的成员"
+        },
+        {
+          "p": "下面这些在文档前面的表里没列，但做 mod 时经常需要 —— 全部从源码里补的。"
+        },
+        {
+          "h4": "`Character`"
+        },
+        {
+          "table": {
+            "head": [
+              "成员",
+              "说明"
+            ],
+            "rows": [
+              [
+                "`getSingAnim(dir, suffix=\"\")`",
+                "拿到「某个方向 + 后缀」对应的动画名，不用自己拼字符串"
+              ],
+              [
+                "`playSingAnimUnsafe(dir, suffix, context, force, reversed, frame)`",
+                "**跳过检查**直接播唱歌动画（`playSingAnim` 会判断当前状态）"
+              ],
+              [
+                "`applyXML(xml)` / `buildXML(?order)`",
+                "从 XML 应用 / 反向导出 XML（编辑器在用）"
+              ],
+              [
+                "`getXMLFromCharName(nameOrChar)`",
+                "**静态**：按名字拿到角色的 XML（会处理 fallback）"
+              ],
+              [
+                "`getIconFromCharName(name, defaultIcon)`",
+                "**静态**：按角色名推图标名"
+              ],
+              [
+                "`playerOffsets`",
+                "是否使用玩家偏移（P2 相关）"
+              ],
+              [
+                "`characterProperties` / `characterAnimProperties`",
+                "**静态白名单**：`<property>` 能给角色/动画设哪些属性"
+              ],
+              [
+                "`FALLBACK_CHARACTER` / `FALLBACK_DEAD_CHARACTER`",
+                "找不到角色时用谁兜底"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "`Stage`：5 个可挂的钩子 + 3 个实用工具"
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "Stage 的钩子签名（都是 public var，直接赋值）",
+            "src": "stage.onXMLLoaded    = function (xml, elems) return elems;         // 解析前改节点列表\nstage.onNodeLoaded    = function (node, sprite) return sprite;      // 每个节点造完精灵后\nstage.onNodeFinished  = function (node, sprite) {}                  // 每个节点处理完\nstage.onAddSprite     = function (sprite) {}                        // 精灵被 add 时\nstage.onXMLPostLoaded = function (xml, elems) return elems;         // 全部加载完"
+          }
+        },
+        {
+          "table": {
+            "head": [
+              "成员",
+              "说明"
+            ],
+            "rows": [
+              [
+                "`DEFAULT_ATTRIBUTES`",
+                "**静态**：`[\"name\",\"startCamPosX\",\"startCamPosY\",\"zoom\",\"folder\"]` —— 根节点这些属性不会被塞进 `extra`"
+              ],
+              [
+                "`getDefaultPos(name)`",
+                "**静态**：拿某个站位名的默认坐标（`dad`/`gf`/`bf`）"
+              ],
+              [
+                "`isCharFlipped(posName, def)`",
+                "这个站位是不是要翻转"
+              ],
+              [
+                "`charSpacingX` / `charSpacingY`",
+                "多个角色挤在同一站位时的间距（默认 20 / 0）"
+              ],
+              [
+                "`applyCharStuff(char, posName, id)` / `prepareCharacter(char, id)`",
+                "把角色按站位摆好（引擎内部流程，改站位逻辑时用）"
+              ],
+              [
+                "`xmlImportedScripts`",
+                "记录这个舞台通过 `<use-extension>` 引了哪些脚本"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "`PlayState`：分数与流程"
+        },
+        {
+          "table": {
+            "head": [
+              "字段",
+              "类型",
+              "说明"
+            ],
+            "rows": [
+              [
+                "`campaignScore`",
+                "`Int`",
+                "整周累计分（故事模式）"
+              ],
+              [
+                "`campaignMisses`",
+                "`Int`",
+                "整周累计 Miss"
+              ],
+              [
+                "`campaignAccuracy`",
+                "`Float`（只读）",
+                "整周平均准确率"
+              ],
+              [
+                "`campaignAccuracyTotal` / `campaignAccuracyCount`",
+                "`Float`",
+                "上面那个值的分子分母"
+              ],
+              [
+                "`deathCounter`",
+                "`Int`（静态）",
+                "死了多少次（跨状态累计）"
+              ],
+              [
+                "`canDadDie`",
+                "`Bool`",
+                "对手角色会不会有死亡动画（对手模式/双人时自动 false）"
+              ],
+              [
+                "`muteVocalsOnMiss`",
+                "`Bool`",
+                "Miss 时静音人声"
+              ],
+              [
+                "`doIconBop`",
+                "`Bool`",
+                "图标跟拍跳动"
+              ],
+              [
+                "`introLength`",
+                "`Int`",
+                "开场倒数长度（拍）"
+              ],
+              [
+                "`maxMisses`",
+                "`Float`",
+                "允许的 Miss 上限（可能是 `POSITIVE_INFINITY`）"
+              ],
+              [
+                "`scrollSpeedTween`",
+                "`FlxTween`",
+                "当前的流速补间（改流速时先看它）"
+              ],
+              [
+                "`defaultDisplayRating` / `defaultDisplayCombo`",
+                "`Bool`",
+                "默认是否显示判定 / 连击"
+              ],
+              [
+                "`ratingNum`",
+                "`Int`",
+                "当前连击数（判定用）"
+              ],
+              [
+                "`accFormat`",
+                "`FlxTextFormat`",
+                "准确率文字格式"
+              ]
+            ]
+          }
         }
       ]
     },
@@ -2082,6 +2602,341 @@
         },
         {
           "p": "同一首歌的脚本按 `ScriptPack` 里的注册顺序执行：先 `data/` 里的公共脚本，再 `songs/<歌>/scripts/`，再按难度子目录。顺序会影响「谁覆盖谁」，所以**同一件事别在两个脚本里各写一遍**。"
+        },
+        {
+          "h": "补遗：另外 53 个回调（按出处分的）"
+        },
+        {
+          "p": "上面那张表是常用回调。下面这些是从源码里逐条挖出来的 —— **每一个都能在脚本里定义，引擎会在对应时机调用**。"
+        },
+        {
+          "h4": "状态 / 子状态"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "时机"
+            ],
+            "rows": [
+              [
+                "`onOpenSubState(sub)`",
+                "打开子状态之前（可改）"
+              ],
+              [
+                "`onCloseSubState(sub)`",
+                "关闭子状态之前"
+              ],
+              [
+                "`onClosePost()`",
+                "子状态关完之后"
+              ],
+              [
+                "`onStateSwitch(next)`",
+                "切换状态时"
+              ],
+              [
+                "`onResize(w, h)`",
+                "窗口尺寸变化"
+              ],
+              [
+                "`onSave()`",
+                "存档要写入时"
+              ],
+              [
+                "`onClose()`",
+                "状态被关闭（`CancellableEvent`）"
+              ],
+              [
+                "`onError(code, msg)`",
+                "出错时"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "菜单"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "时机"
+            ],
+            "rows": [
+              [
+                "`onChangeDifficulty(old, cur, change)`",
+                "故事/自由模式切难度"
+              ],
+              [
+                "`onChangeWeek(old, cur, change)`",
+                "切周"
+              ],
+              [
+                "`onChangeSelection(old, cur, change)`",
+                "光标移动"
+              ],
+              [
+                "`onChangeCoopMode(old, cur, change)`",
+                "切双人模式"
+              ],
+              [
+                "`onWeekSelect(week, weekNum)`",
+                "选中某一周"
+              ],
+              [
+                "`onGoBack()`",
+                "按返回（可 cancel）"
+              ],
+              [
+                "`onUpdateOptionsAlpha(alpha)`",
+                "自由游玩选项栏淡入淡出"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "游戏流程 / 过场"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "时机"
+            ],
+            "rows": [
+              [
+                "`preGameReset()`",
+                "重置游戏之前"
+              ],
+              [
+                "`postGameReset()`",
+                "重置之后"
+              ],
+              [
+                "`postGameStart()`",
+                "游戏开始之后"
+              ],
+              [
+                "`onRestartCutscene(e)`",
+                "重播过场"
+              ],
+              [
+                "`onResumeCutscene(e)`",
+                "继续过场"
+              ],
+              [
+                "`postScreenCenter()`",
+                "对象居中之后（UI 类脚本常用）"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "对话系统"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "时机"
+            ],
+            "rows": [
+              [
+                "`postStartText()`",
+                "一句开始打字后"
+              ],
+              [
+                "`postResetText()`",
+                "文本重置后"
+              ],
+              [
+                "`postNext()`",
+                "翻到下一句"
+              ],
+              [
+                "`postShow(e)` / `postHide(e)`",
+                "角色出场 / 退场之后"
+              ],
+              [
+                "`postPlayBubbleAnim(e)`",
+                "气泡动画播完"
+              ],
+              [
+                "`postPopupChar(e)`",
+                "角色弹动之后"
+              ],
+              [
+                "`showTweenCompleted(tween)` / `hideTweenCompleted(tween)`",
+                "出场 / 退场补间结束"
+              ],
+              [
+                "`loadingError(msg)`",
+                "对话资源加载失败"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "音条 / 设置类 UI"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "时机"
+            ],
+            "rows": [
+              [
+                "`regenerateBars(e)`",
+                "音条要重建"
+              ],
+              [
+                "`postRegenerateBars()`",
+                "重建之后"
+              ],
+              [
+                "`regenerateBarsArray(e)` / `postRegenerateBarsArray()`",
+                "同上，数组版"
+              ],
+              [
+                "`saveSoundPreferences(e)` / `postSaveSoundPreferences()`",
+                "保存音量设置前后"
+              ],
+              [
+                "`reloadText(e)` / `postReloadText(e)`",
+                "文本重载前后"
+              ],
+              [
+                "`reloadDtf(e)` / `postReloadDtf()`",
+                "动态文本格式重载前后"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "⭐ 资源提供者钩子（脚本给引擎**返回值**）"
+        },
+        {
+          "p": "这一类不是「通知你」，而是「**引擎来问你要东西**」。定义它们就能接管资源加载 —— 比如让引擎从网络/加密包取图。"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "引擎传入",
+              "你返回"
+            ],
+            "rows": [
+              [
+                "`getAssetPath(path)`",
+                "资源路径",
+                "新路径（返回 null 走默认）"
+              ],
+              [
+                "`getImage(id)`",
+                "资源 id",
+                "`BitmapData`"
+              ],
+              [
+                "`getFont(id)`",
+                "资源 id",
+                "字体对象"
+              ],
+              [
+                "`getBytes(id)`",
+                "资源 id",
+                "`ByteArray`"
+              ],
+              [
+                "`getAudioBuffer(id)`",
+                "资源 id",
+                "音频缓冲"
+              ],
+              [
+                "`getEditedTime(asset)`",
+                "资源",
+                "修改时间（用于缓存判断）"
+              ],
+              [
+                "`generateIcon(name)`",
+                "图标名",
+                "图标对象"
+              ]
+            ]
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "例：把所有图片重定向到自己的目录",
+            "src": "function getAssetPath(path:String) {\n\tif (path.indexOf(\"characters/\") >= 0)\n\t\treturn \"my-mod/\" + path;   // 返回新路径\n\treturn null;                    // 其余走默认\n}"
+          }
+        },
+        {
+          "callout": {
+            "kind": "warn",
+            "title": "别在这里做重活",
+            "text": "这些钩子会被**每一次资源请求**调用。在里面做文件 IO 或遍历，加载时间会爆炸。要查表也先建好 Map。"
+          }
+        },
+        {
+          "h4": "Discord RPC（`data/discord.hx`）"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "时机"
+            ],
+            "rows": [
+              [
+                "`onReady(user)`",
+                "连上 Discord"
+              ],
+              [
+                "`onDisconnected(code, msg)` / `onError(code, msg)`",
+                "断开 / 出错"
+              ],
+              [
+                "`onJoinGame(secret)` / `onSpectateGame(secret)` / `onJoinRequest(req)`",
+                "加入 / 观战 / 收到邀请"
+              ],
+              [
+                "`onAnyResponse(data)`",
+                "任意回应"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "其他"
+        },
+        {
+          "table": {
+            "head": [
+              "回调",
+              "时机"
+            ],
+            "rows": [
+              [
+                "`tryUpdateHitbox(sprite)`",
+                "要更新某个精灵的碰撞箱时"
+              ],
+              [
+                "`mouseModeChanged(sprite)`",
+                "鼠标模式变化"
+              ],
+              [
+                "`processGLData(e)` / `processGLDataPost(e)`",
+                "着色器 GL 数据处理前后"
+              ],
+              [
+                "`updateGL()`",
+                "每帧 GL 更新"
+              ]
+            ]
+          }
         }
       ]
     },
@@ -2513,6 +3368,75 @@
             "lang": "haxe",
             "title": "对比",
             "src": "// 好：改事件字段\nfunction onPlayAnim(event) {\n\tevent.animName = \"idle-alt\";\n}\n\n// 差：直接改角色字段，可能被覆盖\nfunction onPlayAnim(event) {\n\tboyfriend.animation.play(\"idle-alt\");\n}"
+          }
+        },
+        {
+          "h": "补遗：9 个之前没列的事件类"
+        },
+        {
+          "p": "前面那张表覆盖了 43 个事件类，这里是源码里剩下的 9 个（共 53 个）。"
+        },
+        {
+          "table": {
+            "head": [
+              "事件类",
+              "字段",
+              "用在哪"
+            ],
+            "rows": [
+              [
+                "`NoteUpdateEvent`",
+                "`note` `elapsed` `strum`",
+                "音符每帧更新（做自定义音符行为）"
+              ],
+              [
+                "`SimpleNoteEvent`",
+                "`note`",
+                "只要一个音符的场合"
+              ],
+              [
+                "`ResizeEvent`",
+                "`width` `height` `oldWidth` `oldHeight`",
+                "窗口尺寸变化"
+              ],
+              [
+                "`TransitionCreationEvent`",
+                "`transOut` `newState`",
+                "创建过场过渡"
+              ],
+              [
+                "`ShaderProcessEvent`",
+                "`source` `storageType`",
+                "着色器源码处理（编译前改代码）"
+              ],
+              [
+                "`SoundTrayShowEvent`",
+                "`up`",
+                "音量条弹出"
+              ],
+              [
+                "`SoundTrayTextEvent`",
+                "`displayTxt` `y` `checkIfNull` `reloadDefaultTextFormat`",
+                "音量条文字"
+              ],
+              [
+                "`DiscordPresenceUpdateEvent`",
+                "`presence`",
+                "Discord 状态更新（可改按钮/文案）"
+              ],
+              [
+                "`DynamicEvent`",
+                "`value1`~`value5`",
+                "通用占位事件（自带 5 个任意值）"
+              ]
+            ]
+          }
+        },
+        {
+          "callout": {
+            "kind": "tip",
+            "title": "`ShaderProcessEvent.source` 能改 GLSL 源码",
+            "text": "在编译前拦下 shader 源码做字符串替换 —— 做「给所有着色器注入一个 uniform」这种需求时就靠它。"
           }
         }
       ]
@@ -4047,7 +4971,7 @@
           "kv": [
             [
               "库",
-              "`funkin-modchart`（作者 TheoDev，MIT）"
+              "`funkin-modchart`（作者 Theo，GitHub 账号现为 `dotaxel`；MIT 许可）"
             ],
             [
               "编译开关",
@@ -4182,6 +5106,176 @@
               ]
             ]
           }
+        },
+        {
+          "h": "⑦ 真实函数表（`modchart.Manager`）"
+        },
+        {
+          "p": "上面说「具体函数看库文档」—— 现在直接给你。库的接口分三块：**修饰器**、**事件**、**Playfield**。"
+        },
+        {
+          "h4": "修饰器：调一个值"
+        },
+        {
+          "table": {
+            "head": [
+              "方法",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`m.addModifier(mod, field = -1)`",
+                "启用某个修饰器（之后才能调它的百分比）"
+              ],
+              [
+                "`m.setPercent(mod, value, field = -1)`",
+                "**直接设**修饰器数值（0~1 之间，可超）"
+              ],
+              [
+                "`m.getPercent(mod, field = -1)`",
+                "读当前值"
+              ],
+              [
+                "`m.registerModifier(name, mod)`",
+                "注册你自己的修饰器"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "事件：按拍调值"
+        },
+        {
+          "table": {
+            "head": [
+              "方法",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`m.set(mod, beat, value, player = -1, field = -1)`",
+                "到第 `beat` 拍时把 `mod` 设为 `value`"
+              ],
+              [
+                "`m.ease(mod, beat, length, ease, value, player = -1, field = -1)`",
+                "从当前值缓动到 `value`，持续 `length` 拍"
+              ],
+              [
+                "`m.callback(beat, func, field = -1)`",
+                "到拍时执行函数"
+              ],
+              [
+                "`m.repeater(beat, length, func, field = -1)`",
+                "一段时间内反复执行"
+              ],
+              [
+                "`m.addEvent(event, field = -1)`",
+                "加自定义事件对象"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "Playfield"
+        },
+        {
+          "table": {
+            "head": [
+              "方法",
+              "作用"
+            ],
+            "rows": [
+              [
+                "`m.addPlayfield()`",
+                "新增一个 playfield（**加了之后再调修饰器，要对新 field 重设**）"
+              ],
+              [
+                "`m.playfields`",
+                "所有 playfield 的数组"
+              ],
+              [
+                "`Manager.instance`",
+                "静态单例，不想传引用时用它"
+              ]
+            ]
+          }
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "一个能跑的例子",
+            "src": "import modchart.Manager;\n\nvar m:Manager = null;\n\nfunction postCreate() {\n\tm = new Manager();\n\tadd(m);\n\n\t// 启用\"旋转\"和\"缩放\"两个修饰器\n\tm.addModifier(\"Rotate\");\n\tm.addModifier(\"Scale\");\n\n\t// 第 4 拍开始，用 1 拍时间缓动到 45 度\n\tm.ease(\"Rotate\", 4, 1, FlxEase.quadOut, 0.25);\n\n\t// 第 8 拍缩到 0.8\n\tm.set(\"Scale\", 8, 0.8);\n\n\t// 第 16 拍执行自定义逻辑\n\tm.callback(16, function () trace(\"第 16 拍到了\"));\n}"
+          }
+        },
+        {
+          "callout": {
+            "kind": "tip",
+            "title": "数值是 0~1 的比例",
+            "text": "`setPercent` / `ease` 传的是**百分比**，不是像素或角度。具体怎么映射成角度/位移由修饰器自己决定，所以「0.25 的 Rotate」在不同 playfield 上看着可能不一样。"
+          }
+        },
+        {
+          "h": "⑧ 32 个内置修饰器"
+        },
+        {
+          "p": "`mod` 参数就是下面这些名字（大小写要一致）："
+        },
+        {
+          "table": {
+            "head": [
+              "分类",
+              "修饰器"
+            ],
+            "rows": [
+              [
+                "位移 / 旋转",
+                "`Rotate` `CenterRotate` `LocalRotate` `FieldRotate` `Skew` `Transform` `Zoom` `Scale`"
+              ],
+              [
+                "位置变形",
+                "`Confusion` `Drunk` `Tipsy` `Bumpy` `Tornado` `ZigZag` `Square` `Invert` `Reverse`"
+              ],
+              [
+                "Schmovin 系",
+                "`SchmovinDrunk` `SchmovinTipsy` `SchmovinTornado`"
+              ],
+              [
+                "外观",
+                "`Stealth` `ArrowShape` `Radionic` `Drugged` `Boost` `Bounce` `SawTooth` `Beat`"
+              ],
+              [
+                "结构",
+                "`PathModifier` `ReceptorScroll` `OpponentSwap` `Infinite`"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "名字基本沿用了 NotITG / Schmovin 的那套，会玩 NotITG 的话几乎零成本。"
+        },
+        {
+          "h": "⑨ 先说清楚：这个库已经停止维护"
+        },
+        {
+          "p": "库的 README 顶上写着 **UNMAINTAINED**，作者（axel）明确说在排期废弃，后继是 **FlxModchart**。同时列了一串已知问题："
+        },
+        {
+          "ul": [
+            "相机解析不一致（different camera resolving）",
+            "渲染器里 `FlxSprite` / `FlxFrame` 属性实现不全或为 null",
+            "顶点着色问题（可能和 flixel 批处理有关）",
+            "**持续掉帧 / 掉帧尖峰**",
+            "渲染定制性差；**不能渲染「没有箭头的 FlxSprite」**（NotITG 的 actor 那种）",
+            "长按只支持「分段式」渲染（0.2.7 那套）",
+            "作者自己说架构不好、没有测试"
+          ]
+        },
+        {
+          "callout": {
+            "kind": "warn",
+            "title": "所以要不要用",
+            "text": "做**能跑的特效**没问题；想**长期维护、追求稳定渲染**的话要有心理准备。作者建议关注后续的 **FlxModchart**。另外仓库已经从 `TheoDevelops` 转到 `dotaxel` 名下，旧链接会跳转。"
+          }
         }
       ],
       "deep": [
@@ -4230,6 +5324,28 @@
         },
         {
           "p": "建议：**先用引擎事件，撑不住了再上 modchart**。很多「看起来像 modchart」的效果，其实几个 `FlxTween` 就够了。"
+        },
+        {
+          "h": "⑩ 自己写一个修饰器"
+        },
+        {
+          "p": "`registerModifier(name, mod)` 可以注册自定义修饰器 —— 适合做库自带那 32 个之外的效果。"
+        },
+        {
+          "code": {
+            "lang": "haxe",
+            "title": "思路（继承 Modifier，实现输出）",
+            "src": "import modchart.engine.modifiers.Modifier;\n\n// 自定义修饰器需要继承 Modifier 并实现它的输出方法\n// 具体签名以 modchart/engine/modifiers/Modifier.hx 为准\n\nm.registerModifier(\"MyEffect\", new MyEffect());\n\n// 之后就能像内置的一样用\nm.addModifier(\"MyEffect\");\nm.set(\"MyEffect\", 4, 0.5);"
+          }
+        },
+        {
+          "h": "⑪ 和「纯 FlxTween 演出」怎么选"
+        },
+        {
+          "p": "回头看第 22 节的取舍表：**如果只是想让箭头晃一下，`FlxTween` 三行就够**。modchart 真正的价值在：多 playfield、3D 相机、箭头轨迹可视化、以及「按拍编排一大串修饰器」的工作流。"
+        },
+        {
+          "p": "一个判断标准：**你的效果能不能写成「第 N 拍把 X 设成 Y」？** 能，而且有一堆这样的点 → 用 modchart；只是两三个一次性动画 → 别引入。"
         }
       ]
     },

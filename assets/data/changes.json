@@ -1,0 +1,60 @@
+{
+  "generated": "2026-10-23",
+  "tool": "tools/diff-versions.py",
+  "versions": [
+    {
+      "tag": "v1.2",
+      "date": "2026-10-23",
+      "title": "界面与体验大更新",
+      "latest": true,
+      "stats": { "added": 4, "modified": 6, "removed": 0, "lines_added": 1840, "lines_removed": 260 },
+      "files": [
+        { "path": "assets/js/causal.js", "status": "added", "lines_added": 430, "note": "因果线背景（丝线 + 星尘 + 鼠标牵引）" },
+        { "path": "assets/js/ui-extras.js", "status": "added", "lines_added": 260, "note": "主题 / 缩放 / 背景开关 / 简约模式 / 开发者模式 / 更新日志" },
+        { "path": "tools/diff-versions.py", "status": "added", "lines_added": 240, "note": "版本对比脚本" },
+        { "path": "assets/data/changes.json", "status": "added", "lines_added": 60, "note": "本页「更新前后对比」的数据源" },
+        { "path": "index.html", "status": "modified", "lines_added": 120, "lines_removed": 6, "note": "设置面板 / 备用入口条 / 更新日志区 / 交互层画布" },
+        { "path": "assets/css/style.css", "status": "modified", "lines_added": 260, "lines_removed": 12, "note": "白天模式 / 缩放 / 简约模式 / 更新日志 / 提示条" },
+        { "path": "assets/js/content-5.js", "status": "modified", "lines_added": 620, "lines_removed": 40, "note": "第五部分 12 节各补一个完整示例" },
+        { "path": "README.md", "status": "modified", "lines_added": 90, "lines_removed": 20, "note": "背景 / 鼠标交互 / 新功能说明" },
+        { "path": "CodenameEngine-使用与开发说明.txt", "status": "modified", "lines_added": 900, "lines_removed": 180, "note": "随正文同步重建" },
+        { "path": "tools/serve.js", "status": "modified", "lines_added": 40, "lines_removed": 3, "note": "音频 MIME + Range + 目录穿越防护" }
+      ]
+    },
+    {
+      "tag": "v1.1",
+      "date": "2026-10-22",
+      "title": "补遗：把漏掉的全捞回来",
+      "latest": false,
+      "stats": { "added": 1, "modified": 4, "removed": 0, "lines_added": 1420, "lines_removed": 60 },
+      "files": [
+        { "path": "assets/js/content-6.js", "status": "added", "lines_added": 980, "note": "第六部分 8 节（设置项/按键/重定向/flags/命令行/日志/性能/报错）" },
+        { "path": "assets/js/content-5.js", "status": "modified", "lines_added": 380, "lines_removed": 40, "note": "回调补遗 53 个、事件类 9 个、Options 86 字段" },
+        { "path": "assets/js/content-3.js", "status": "modified", "lines_added": 180, "lines_removed": 10, "note": "目录全量树、Animate、Splash" },
+        { "path": "assets/js/content-4.js", "status": "modified", "lines_added": 120, "lines_removed": 8, "note": "Sys 小节、events schema" },
+        { "path": "assets/js/content-2.js", "status": "modified", "lines_added": 60, "lines_removed": 5, "note": "编辑器全快捷键" }
+      ]
+    },
+    {
+      "tag": "v1.0",
+      "date": "2026-10-21",
+      "title": "初版：四部分 26 节",
+      "latest": false,
+      "stats": { "added": 12, "modified": 0, "removed": 0, "lines_added": 9800, "lines_removed": 0 },
+      "files": [
+        { "path": "index.html", "status": "added", "lines_added": 210, "note": "页面骨架 + 警示弹窗 + 三档阅读" },
+        { "path": "assets/css/style.css", "status": "added", "lines_added": 900, "note": "主题与全部组件样式" },
+        { "path": "assets/js/app.js", "status": "added", "lines_added": 700, "note": "渲染器 / 搜索 / 目录 / 代码复制 / XML 解剖" },
+        { "path": "assets/js/content-1.js", "status": "added", "lines_added": 340, "note": "第一部分 4 节" },
+        { "path": "assets/js/content-2.js", "status": "added", "lines_added": 900, "note": "第二部分 10 节" },
+        { "path": "assets/js/content-3.js", "status": "added", "lines_added": 700, "note": "第三部分 3 节" },
+        { "path": "assets/js/content-4.js", "status": "added", "lines_added": 1100, "note": "第四部分 9 节" },
+        { "path": "assets/js/content-5.js", "status": "added", "lines_added": 1200, "note": "第五部分 12 节" },
+        { "path": "tools/build-txt.js", "status": "added", "lines_added": 380, "note": "TXT 生成" },
+        { "path": "tools/selfcheck.js", "status": "added", "lines_added": 200, "note": "交付前自检" },
+        { "path": "README.md", "status": "added", "lines_added": 160, "note": "部署说明" },
+        { "path": "CodenameEngine-使用与开发说明.txt", "status": "added", "lines_added": 4200, "note": "纯文本版" }
+      ]
+    }
+  ]
+}

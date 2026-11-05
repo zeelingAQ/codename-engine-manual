@@ -19,8 +19,8 @@
   var W = 0, H = 0, DPR = 1, CX = 0, CY = 0;
   var running = true, raf = 0, lastT = 0;
 
-  var WARM = [[255, 82, 64], [255, 128, 74], [214, 84, 46], [255, 180, 126]];
-  var COOL = [[150, 214, 255], [235, 244, 255]];
+  var WARM = [[255, 170, 150], [255, 196, 166], [246, 178, 150], [255, 220, 200]];
+  var COOL = [[190, 226, 255], [245, 250, 255]];
 
   var filaments = [];
   var dust = [];
@@ -28,6 +28,7 @@
   var sparks = [];
   var mouse = { x: -9999, y: -9999, active: false };
   var realMoved = false;   // 真实鼠标动过没有（没动过就自己演示）
+  var enabled = false;     // 背景特效开关，默认关闭
   var CALM = reduce ? 0.8 : 1;      // 减少动效时略放慢
   var AMP  = reduce ? 0.7 : 1;      // 摆动幅度
 
@@ -88,7 +89,7 @@
       color: c,
       z: z,
       width: 0.6 + z * 2.6,
-      alpha: 0.14 + z * 0.62,
+      alpha: 0.09 + z * 0.34,
       phase: Math.random() * 100
     };
   }
@@ -223,7 +224,7 @@
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + Math.min(1, alpha * 0.75).toFixed(3) + ')';
+      ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + Math.min(1, alpha * 0.6).toFixed(3) + ')';
       ctx.lineWidth = Math.max(0.35, fl.width * 0.34);
       ctx.stroke();
 
@@ -373,8 +374,27 @@
   resize();
   window.addEventListener('resize', function () { resize(); }, { passive: true });
 
-  // 常驻动画：即使系统开了「减少动态效果」也动，只是放慢一点
-  start();
+  // 供 UI 调用
+  window.CNE_BGFX = {
+    enable: function () {
+      enabled = true;
+      resize();
+      start();
+      localStorage.setItem('cne-bgfx', 'on');
+    },
+    disable: function () {
+      enabled = false;
+      stop();
+      ctx.clearRect(0, 0, W, H);
+      if (fxc) fxc.clearRect(0, 0, W, H);
+      localStorage.setItem('cne-bgfx', 'off');
+    },
+    isOn: function () { return enabled; }
+  };
+
+  // 开关默认关：先不启动，等开关打开
+  if (localStorage.getItem('cne-bgfx') === 'on') { enabled = true; start(); }
+  else { ctx.clearRect(0, 0, W, H); if (fxc) fxc.clearRect(0, 0, W, H); }
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) stop(); else start();
   });

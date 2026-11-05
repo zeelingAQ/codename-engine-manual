@@ -1683,15 +1683,15 @@
     Options.devMode 一旦为 true，下面这些会同时解锁。它不是「一个设置」，是一
     整套权限。
 
-    ［解锁的东西 ｜ 怎么触发 ｜ 受 devMode 控制］
-      · 游戏内控制台 ｜ F2 ｜ 是
-      · 帧率/统计面板 ｜ F3 ｜ 是
-      · 舞台检查器（点选对象） ｜ F4 ｜ 是
-      · 重载当前界面 ｜ F5 ｜ 是
-      · 重载全部脚本 ｜ Shift+F5 ｜ 是
-      · UI 调试器 ｜ 7（游戏内） ｜ 是
-      · 编辑器菜单入口 ｜ 主菜单里的 Edit ｜ 是
-      · 开发者按键分类（4 个） ｜ 设置 → 控制 ｜ 是
+    ［解锁的东西 ｜ 怎么触发 ｜ 受 devMode 控制 ｜ 它到底能干什么］
+      · 游戏内控制台 ｜ F2 ｜ 是 ｜ 看日志、敲命令、直接执行 HScript 代码
+      · 帧率/统计面板 ｜ F3 ｜ 是 ｜ 见本节正文
+      · 舞台检查器（点选对象） ｜ F4 ｜ 是 ｜ 见本节正文
+      · 重载当前界面 ｜ F5 ｜ 是 ｜ 改完脚本/XML 不用退游戏，一条命令重来
+      · 重载全部脚本 ｜ Shift+F5 ｜ 是 ｜ 连 global.hx 一起重载，改全局逻辑时用
+      · UI 调试器 ｜ 7（游戏内） ｜ 是 ｜ 列出界面元素的坐标与层级，排查布局问题
+      · 编辑器菜单入口 ｜ 主菜单里的 Edit ｜ 是 ｜ 见本节正文
+      · 开发者按键分类（4 个） ｜ 设置 → 控制 ｜ 是 ｜ 见本节正文
 
 
   ■ 但编辑器还有一条独立入口（很多人不知道）
@@ -2900,6 +2900,153 @@
 
     同一个方向可以写多条 <anim> —— 引擎会随机挑一条播，这就是「同一方向两种打
     击特效」的做法。
+
+
+  ■ 从零手写：人物 XML 的完整示例
+  ─────────────────────────────
+
+    下面这一份是按引擎的解析逻辑重新写的示例，不是从官方文件夹里抄的。每一行都
+    加了注释说明「为什么这么写」，你可以直接改成自己的。
+
+  ┌─ 代码：mods/my-mod/data/characters/mychar.xml ［xml］
+  │ <?xml version="1.0" encoding="utf-8"?>
+  │ <!-- 根节点必须是 <character>；sprite 不写会默认用文件名 mychar -->
+  │ <character sprite="characters/mychar" x="0" y="0"
+  │            flipX="false" antialiasing="true"
+  │            icon="mychar" gameOverChar="mychar-dead"
+  │            danceEvery="1" defFps="24">
+  │ 
+  │ 	<!-- ① 主图集就是 sprite 那一张；需要额外图集才写 spritesheet -->
+  │ 	<spritesheet path="characters/mychar-extra" />
+  │ 
+  │ 	<!-- ② 每个 <anim> = 一个动画名 + 图集里的帧前缀 -->
+  │ 	<!--    name  引擎按这个名字播（idle / singLEFT / singUP …） -->
+  │ 	<!--    anim  图集里帧的前缀，必须和 XML 里写的完全一致 -->
+  │ 	<!--    fps   帧率；不写会用 defFps -->
+  │ 	<!--    loop  待机要 true，唱歌要 false -->
+  │ 	<!--    x / y 这个动画相对角色原点的偏移 -->
+  │ 	<anim name="idle"      anim="idle"       fps="24" loop="true"  x="0" y="0" />
+  │ 	<anim name="singLEFT"  anim="singLEFT"   fps="24" loop="false" x="-8" y="0" />
+  │ 	<anim name="singDOWN"  anim="singDOWN"   fps="24" loop="false" x="0" y="12" />
+  │ 	<anim name="singUP"    anim="singUP"     fps="24" loop="false" x="0" y="-10" />
+  │ 	<anim name="singRIGHT" anim="singRIGHT"  fps="24" loop="false" x="12" y="0" />
+  │ 
+  │ 	<!-- ③ danceLeft / danceRight 存在时，待机会左右交替（否则只用 idle） -->
+  │ 	<anim name="danceLeft"  anim="danceLeft"  fps="24" loop="false" />
+  │ 	<anim name="danceRight" anim="danceRight" fps="24" loop="false" />
+  │ </character>
+  └─ 代码结束
+
+      ▸ sprite
+          图集路径（相对 images/，不带扩展名）
+      ▸ flipX
+          整张图左右翻；角色本来朝左就设 true
+      ▸ icon
+          血条图标名（对应 images/icons/<名字>/）
+      ▸ gameOverChar
+          死亡时用哪个角色做灵魂
+      ▸ defFps
+          默认帧率，<anim> 里不写 fps 就用它
+      ▸ danceEvery
+          每几拍跳一次（1 = 每拍）
+      ▸ antialiasing
+          缩放时要不要平滑（像素风设 false）
+
+
+  ■ 图集与命名：最容易踩的 4 个坑
+  ─────────────────────────────
+
+      1. 图集必须成对：mychar.png + mychar.xml（Sparrow 格式），两张同名同目录；
+        只放 PNG 会加载失败。
+      2. 帧前缀区分大小写：XML 里写 singLEFT，图集里是 singLeft → 找不到帧，角色
+        会在唱歌时「闪一下」。
+      3. 动画名不能编：引擎按固定名字调用（idle singLEFT singDOWN singUP
+        singRIGHT danceLeft danceRight hey cheer dead）。名字写错 = 那个动作不播。
+      4. 偏移写在 anim 上，不是改图。图集里人物脚底对齐在同一水平线时，用 y 微调
+        即可。
+
+
+  ■ 从零手写：舞台 XML 的完整示例
+  ─────────────────────────────
+
+  ┌─ 代码：mods/my-mod/data/stages/mystage.xml ［xml］
+  │ <?xml version="1.0" encoding="utf-8"?>
+  │ <stage folder="stages/mystage/" zoom="0.9"
+  │        startCamPosX="0" startCamPosY="0">
+  │ 
+  │ 	<!-- ① 背景：sprite 指向 images/stages/mystage/bg
+  │ 	     因为根节点有 folder，子节点路径会自动拼上它 -->
+  │ 	<sprite name="bg" sprite="bg" x="-200" y="-100" scroll="0.9" />
+  │ 
+  │ 	<!-- ② 前景装饰：scroll 大于 1 会跑得比镜头快，做出层次 -->
+  │ 	<sprite name="crowd" sprite="crowd" x="0" y="300" scroll="1.1">
+  │ 		<anim name="idle" anim="crowd idle" fps="12" loop="true" />
+  │ 	</sprite>
+  │ 
+  │ 	<!-- ③ 三个角色站位：name 要能被谱面 / 舞台脚本引用 -->
+  │ 	<girlfriend x="120" y="90" />
+  │ 	<dad      x="480" y="110" />
+  │ 	<boyfriend x="860" y="120" />
+  │ 
+  │ 	<!-- ④ 可选：给这个舞台挂脚本（加载完就执行） -->
+  │ 	<use-extension script="mystage" folder="data/scripts/" loadBefore="true" />
+  │ </stage>
+  └─ 代码结束
+
+      ▸ folder
+          子节点的 sprite 路径前缀，省得每个都写全路径
+      ▸ zoom
+          默认镜头缩放（越小看得越远）
+      ▸ scroll
+          滚动系数：0 = 完全不动（UI 用），1 = 跟着角色，大于 1 = 视差更快
+      ▸ <girlfriend> / <dad> / <boyfriend>
+          三个固定角色位，不写在 XML 里就没有
+      ▸ <use-extension>
+          给舞台挂 .hx 脚本；loadBefore 决定在解析 XML 之前还是之后加载
+
+
+  ■ 配套的两个小文件
+  ────────────────
+
+  ┌─ 代码：songs/mysong/meta.json（歌曲元信息） ［json］
+  │ {
+  │ 	"name": "mysong",
+  │ 	"displayName": "My Song",
+  │ 	"bpm": 150,
+  │ 	"stepsPerBeat": 4,
+  │ 	"beatsPerMeasure": 4,
+  │ 	"difficulties": ["normal", "hard"],
+  │ 	"icon": "dad",
+  │ 	"color": "#8B5CF6",
+  │ 	"needsVoices": true,
+  │ 	"opponentModeAllowed": true,
+  │ 	"coopAllowed": true,
+  │ 	"stage": "mystage"
+  │ }
+  └─ 代码结束
+
+  ┌─ 代码：mods/my-mod/data/config/modpack.ini（mod 身份证） ［ini］
+  │ [Common]
+  │ NAME="My Mod"
+  │ DESCRIPTION="示例 mod"
+  │ AUTHOR="you"
+  │ VERSION="1.0.0"
+  │ API_VERSION=3
+  └─ 代码结束
+
+    【注意：这些示例是「手写说明稿」】
+      它们按引擎的解析规则写，字段都可以用；但不是官方内置文件。想对照真实素材，
+      去 assets/data/characters/bf.xml 看结构，别直接复制路径。
+
+
+  ■ 目录摆好之后的检查清单
+  ──────────────────────
+
+      1. data/characters/mychar.xml 存在，images/characters/mychar.png + .xml 存
+        在。
+      2. XML 里每个 anim 的前缀，在图集 XML 里搜得到。
+      3. 舞台里引用的角色站位名，和谱面 strumLines[].position 对得上。
+      4. 进歌后按 F2 看控制台：没有红色 ERROR 才算过。
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -5368,16 +5515,19 @@
   │ }
   └─ 代码结束
 
-    ［type 可写 ｜ 变成什么控件］
-      · Bool ｜ 复选框
-      · Int(min, max, step) ｜ 整数输入
-      · Float(min, max, step, precision) ｜ 小数输入
-      · String ｜ 文本输入
-      · StrumLine ｜ 轨道选择（0=对手，1=玩家…）
-      · ColorWheel ｜ 颜色选择器
-      · DropDown('a', 'b') ｜ 下拉框
-      · Character ｜ 角色选择
-      · Stage ｜ 舞台选择
+    ［type 可写 ｜ 变成什么控件 ｜ 什么时候选它］
+      · Bool ｜ 复选框 ｜ 只有「开/关」两态时用它，比如「是否循环」
+      · Int(min, max, step) ｜ 整数输入 ｜ 要整数且范围有限，比如「目标轨道 0~3」
+      · Float(min, max, step, precision) ｜ 小数输入 ｜ 要小数，比如「强度 0~2，
+        步进 0.1，显示 2 位」
+      · String ｜ 文本输入 ｜ 要一段文字或一串参数，比如「函数名」「参数列表」
+      · StrumLine ｜ 轨道选择（0=对手，1=玩家…） ｜ 要指定「哪一条轨道」时用，编
+        辑器会给你一个下拉而不是让你填数字
+      · ColorWheel ｜ 颜色选择器 ｜ 要颜色时用，存的是色值字符串
+      · DropDown('a', 'b') ｜ 下拉框 ｜ 选项固定且不多时用，比让作者手打更不容易
+        错
+      · Character ｜ 角色选择 ｜ 要指定角色名时用，编辑器只列已加载的角色
+      · Stage ｜ 舞台选择 ｜ 要指定舞台名时用
 
     saveIfDefault: false 的意思是「值等于默认值时不写进谱面文件」，可以让事件
     JSON 更干净。
@@ -5424,10 +5574,13 @@
   │ ________PACKSEP________
   └─ 代码结束
 
-    ［段 ｜ 内容 ｜ 谁读它］
-      · 第 1 段 ｜ 文件名（含扩展名） ｜ 引擎用来判断类型
-      · 第 2 段 ｜ HScript 代码 ｜ 脚本系统
-      · 第 3 段 ｜ 事件 JSON ｜ 事件系统（只有事件 pack 需要）
+    ［段 ｜ 内容 ｜ 谁读它 ｜ 写错会怎样］
+      · 第 1 段 ｜ 文件名（含扩展名） ｜ 引擎用来判断类型 ｜ 引擎靠它判类型；写
+        错 → 这个 pack 直接被忽略
+      · 第 2 段 ｜ HScript 代码 ｜ 脚本系统 ｜ 脚本系统按普通 .hx 执行；语法错 →
+        整个 pack 加载失败
+      · 第 3 段 ｜ 事件 JSON ｜ 事件系统（只有事件 pack 需要） ｜ 事件系统解析
+        JSON；格式错 → 事件列表里看不到你的事件
 
     所以一个 MyEvent.pack 的内容结构是：
 
@@ -5558,16 +5711,19 @@
     type 不是枚举，是表达式。引擎会用一个只暴露这几个构造器的 HScript 解释器去
     求值：
 
-    ［写什么 ｜ 得到什么 ｜ 参数］
-      · Bool ｜ 开关 ｜ —
-      · Int(min, max, step) ｜ 整数 ｜ 都可省略
-      · Float(min, max, step, precision) ｜ 小数 ｜ 都可省略
-      · String ｜ 文本框 ｜ —
-      · DropDown("A", "B", "C") ｜ 下拉框 ｜ 任意个值
-      · ColorWheel ｜ 取色器 ｜ —
-      · StrumLine ｜ 选一条轨道 ｜ —
-      · Character ｜ 选一个角色 ｜ —
-      · Stage ｜ 选一个舞台 ｜ —
+    ［写什么 ｜ 得到什么 ｜ 参数 ｜ 什么时候选它］
+      · Bool ｜ 开关 ｜ — ｜ 只有「开/关」两态时用它，比如「是否循环」
+      · Int(min, max, step) ｜ 整数 ｜ 都可省略 ｜ 要整数且范围有限，比如「目标
+        轨道 0~3」
+      · Float(min, max, step, precision) ｜ 小数 ｜ 都可省略 ｜ 要小数，比如「强
+        度 0~2，步进 0.1，显示 2 位」
+      · String ｜ 文本框 ｜ — ｜ 要一段文字或一串参数，比如「函数名」「参数列表」
+      · DropDown("A", "B", "C") ｜ 下拉框 ｜ 任意个值 ｜ 见本节正文
+      · ColorWheel ｜ 取色器 ｜ — ｜ 要颜色时用，存的是色值字符串
+      · StrumLine ｜ 选一条轨道 ｜ — ｜ 要指定「哪一条轨道」时用，编辑器会给你一
+        个下拉而不是让你填数字
+      · Character ｜ 选一个角色 ｜ — ｜ 要指定角色名时用，编辑器只列已加载的角色
+      · Stage ｜ 选一个舞台 ｜ — ｜ 要指定舞台名时用
 
     【建议：精简写法】
       Int / Float 不传参数就是「不限范围」，比如 "type": "Float" 就是一个任意小
@@ -10249,11 +10405,14 @@
   ■ ⑧ Flags 与 Options 的分工
   ─────────────────────────
 
-    ［ ｜ Flags ｜ Options］
-      · 谁改 ｜ mod 作者 / 发行方 ｜ 玩家
-      · 改哪 ｜ ini 文件 ｜ 设置界面
-      · 何时生效 ｜ 启动时 ｜ 即时
-      · 典型 ｜ 禁用编辑器、默认难度 ｜ 下滚、音量、偏移
+    ［维度 ｜ Flags（引擎级开关） ｜ Options（玩家设置）］
+      · 谁改 ｜ 由做 mod 的人在 ini 里写死，玩家看不到 ｜ 由玩家在设置界面里改，
+        随时生效
+      · 改哪 ｜ data/config/flags.ini 或 modpack.ini 的 [Flags] ｜ 游戏内
+        Settings 各页
+      · 何时生效 ｜ 只在启动读一次，改完必须重启 ｜ 改完立刻生效，离开设置页自动
+        存
+      · 典型 ｜ 影响引擎行为，属于「发行配置」 ｜ 影响玩家手感，属于「个人偏好」
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -10443,12 +10602,12 @@
   ■ ② 日志的分级
   ────────────
 
-    ［级别 ｜ 前缀/颜色 ｜ 含义］
-      · TRACE ｜ 脚本 trace() 的输出 ｜ 普通调试信息
-      · INFO ｜ 蓝色 ｜ 一般信息
-      · WARNING ｜ 黄色 ｜ 能继续跑，但可能有问题
-      · ERROR ｜ 红色 ｜ 出错了，功能可能失效
-      · VERBOSE ｜ 灰色 ｜ 只有 -v 才显示（加载细节等）
+    ［级别 ｜ 前缀/颜色 ｜ 含义 ｜ 看到它该做什么］
+      · TRACE ｜ 脚本 trace() 的输出 ｜ 普通调试信息 ｜
+      · INFO ｜ 蓝色 ｜ 一般信息 ｜
+      · WARNING ｜ 黄色 ｜ 能继续跑，但可能有问题 ｜
+      · ERROR ｜ 红色 ｜ 出错了，功能可能失效 ｜
+      · VERBOSE ｜ 灰色 ｜ 只有 -v 才显示（加载细节等） ｜
 
     脚本里的 trace() 会带上文件:行号，这是定位问题最有效的信息。
 
@@ -10525,12 +10684,17 @@
   ■ ① 先学会测量
   ────────────
 
-    ［指标 ｜ 在哪看 ｜ 健康值］
-      · FPS ｜ F3 第一行 ｜ 稳定 60+（目标是你的帧率上限）
-      · MEM ｜ F3 第二行 ｜ 几百 MB 内；持续上涨 = 泄漏
-      · 对象数 ｜ F3 Flixel 区块 ｜ 稳定；打歌中不该一直涨
-      · 绘制调用 totalDC ｜ F3 Stats 区块 ｜ 越低越好，几百以内算健康
-      · 当前状态 ｜ F3 Flixel 区块 ｜ 确认没在跑多余的状态
+    ［指标 ｜ 在哪看 ｜ 健康值 ｜ 怎么用它判断］
+      · FPS ｜ F3 第一行 ｜ 稳定 60+（目标是你的帧率上限） ｜ 低于你设的上限 =
+        有东西在拖后腿；忽高忽低 = 每帧有突发重活
+      · MEM ｜ F3 第二行 ｜ 几百 MB 内；持续上涨 = 泄漏 ｜ 绝对值大不一定坏；每
+        60 帧都在涨才是泄漏
+      · 对象数 ｜ F3 Flixel 区块 ｜ 稳定；打歌中不该一直涨 ｜ 打歌中一直涨 = 有
+        东西没销毁（长按/粒子最常见）
+      · 绘制调用 totalDC ｜ F3 Stats 区块 ｜ 越低越好，几百以内算健康 ｜ 几百正
+        常，上千查散图；关掉 shader 后如果骤降，就是它的问题
+      · 当前状态 ｜ F3 Flixel 区块 ｜ 确认没在跑多余的状态 ｜ 出现你没预期的状态
+        名 = 有脚本重复 switchState
 
 
   ■ ② 绘制调用：最大的性能杀手
@@ -10626,10 +10790,13 @@
     60 FPS = 每帧 16.6 ms；120 FPS = 8.3 ms。你的 mod 每帧能做多少事，取决于这
     个预算怎么花。
 
-    ［帧率 ｜ 每帧预算 ｜ 适合］
-      · 60 ｜ 16.6 ms ｜ 绝大多数 mod
-      · 120 ｜ 8.3 ms ｜ 追求丝滑，开销要砍半
-      · 240 ｜ 4.2 ms ｜ 只适合几乎无特效的场景
+    ［帧率 ｜ 每帧总预算 ｜ 你实际能花多少 ｜ 适合什么场景］
+      · 60 ｜ 16.6 ms ｜ 约 10 ms 给逻辑与脚本、6 ms 给绘制；绝大多数 mod 都该用
+        这档 ｜ 绝大多数 mod
+      · 120 ｜ 8.3 ms ｜ 各 4 ms 左右；一旦加了全屏 shader 或多角色，很容易超 ｜
+        追求丝滑，开销要砍半
+      · 240 ｜ 4.2 ms ｜ 各 2 ms；只有「几乎无特效」的纯谱面才跑得稳 ｜ 只适合几
+        乎无特效的场景
 
 
   ■ 用一段脚本自己测（比肉眼看可靠）
@@ -11313,6 +11480,129 @@
     准。
 
     制作：一人制作。如果这份东西帮你少走了几个小时的弯路，那就够了。
+
+
+  ■ import 总表：每个功能到底要 import 什么
+  ──────────────────────────────────────
+
+    写外部脚本最常见的报错是「Unknown identifier」—— 十有八九是漏了 import。下
+    面这张表按用途列全，照着抄就行。
+
+  ● 引擎工具类
+
+    ［要用的东西 ｜ 完整 import］
+      · 窗口 / 标题 / 图标 ｜ import funkin.backend.utils.WindowUtils;
+      · 系统弹窗 / 原生控制台 ｜ import funkin.backend.utils.NativeAPI;
+      · 通用工具（存档文件、动画名、坐标） ｜ import
+        funkin.backend.utils.CoolUtil;
+      · 自定义按键读写 ｜ import funkin.backend.utils.ControlsUtil;
+      · zip 打包 / 解压 ｜ import funkin.backend.utils.ZipUtil;
+      · 内存占用 ｜ import funkin.backend.utils.MemoryUtil;
+      · 线程 ｜ import funkin.backend.utils.ThreadUtil;
+      · 位图 / 截图相关 ｜ import funkin.backend.utils.BitmapUtil;
+      · XML 节点操作 ｜ import funkin.backend.utils.XMLUtil;
+      · ini 读写 ｜ import funkin.backend.utils.IniUtil;
+      · Markdown 渲染 ｜ import funkin.backend.utils.MarkdownUtil;
+      · 引擎环境信息 ｜ import funkin.backend.utils.EngineUtil;
+      · 多语言 ｜ import funkin.backend.utils.TranslationUtil;
+      · Discord 状态 ｜ import funkin.backend.utils.DiscordUtil;
+
+  ● 资源 / mod
+
+    ［要用的东西 ｜ 完整 import］
+      · 资源路径 ｜ import funkin.backend.assets.Paths;
+      · mod 列表 / 切换 ｜ import funkin.backend.assets.ModsFolder;
+      · 自定义资源库 ｜ import funkin.backend.assets.ModsFolderLibrary;
+      · zip 形式的 mod ｜ import funkin.backend.assets.ZipFolderLibrary;
+
+  ● 打歌对象
+
+    ［要用的东西 ｜ 完整 import］
+      · PlayState ｜ import funkin.game.PlayState;
+      · 角色 ｜ import funkin.game.Character;
+      · 舞台 ｜ import funkin.game.Stage;
+      · 音符 ｜ import funkin.game.Note;
+      · 接收器 / 轨道 ｜ import funkin.game.Strum; import funkin.game.StrumLine;
+      · 血条图标 ｜ import funkin.game.HealthIcon;
+      · 溅射 ｜ import funkin.game.Splash; import funkin.game.SplashHandler;
+      · 游戏结束 ｜ import funkin.game.GameOverSubstate;
+
+  ● 脚本系统
+
+    ［要用的东西 ｜ 完整 import］
+      · 脚本对象 ｜ import funkin.backend.scripting.Script;
+      · 脚本包 ｜ import funkin.backend.scripting.ScriptPack;
+      · 事件管理器 ｜ import funkin.backend.scripting.EventManager;
+      · 用脚本当状态 ｜ import funkin.backend.scripting.ModState;
+      · 用脚本当子状态 ｜ import funkin.backend.scripting.ModSubState;
+
+  ● 数据 / 系统
+
+    ［要用的东西 ｜ 完整 import］
+      · 存档 / 最高分 ｜ import funkin.savedata.FunkinSave;
+      · 设置字段 ｜ import funkin.options.Options;
+      · Flags 开关 ｜ import funkin.backend.system.Flags;
+      · 节拍换算 ｜ import funkin.backend.system.Conductor;
+      · 控制台命令 ｜ import
+        funkin.backend.system.console.ConsoleCommandManager;
+      · 谱面解析 ｜ import funkin.backend.chart.Chart;
+      · 事件定义 ｜ import funkin.backend.chart.EventsData;
+      · 着色器 ｜ import funkin.backend.shaders.FunkinShader;
+
+  ● 事件对象（e 的类型）
+
+    ［事件 ｜ 完整 import］
+      · 命中 ｜ import funkin.backend.scripting.events.note.NoteHitEvent;
+      · 漏键 ｜ import funkin.backend.scripting.events.note.NoteMissEvent;
+      · 音符更新 ｜ import funkin.backend.scripting.events.note.NoteUpdateEvent;
+      · 溅射 ｜ import funkin.backend.scripting.events.splash.SplashShowEvent;
+      · 状态切换 / 子状态 ｜ import
+        funkin.backend.scripting.events.state.StateEvent;
+      · 菜单切换 ｜ import funkin.backend.scripting.events.menu.MenuChangeEvent;
+      · 窗口尺寸 ｜ import funkin.backend.scripting.events.ResizeEvent;
+      · Discord 状态 ｜ import
+        funkin.backend.scripting.events.discord.DiscordPresenceUpdateEvent;
+
+  ● 第三方 / 底层
+
+    ［要用的东西 ｜ 完整 import］
+      · modchart ｜ import modchart.Manager;
+      · 补间 / 缓动 ｜ import flixel.tweens.FlxTween; import
+        flixel.tweens.FlxEase;
+      · 定时器 / 颜色 ｜ import flixel.util.FlxTimer; import
+        flixel.util.FlxColor;
+      · 资源读取 ｜ import openfl.utils.Assets;
+      · 窗口对象 ｜ import openfl.Lib;
+      · 剪贴板 ｜ import openfl.desktop.Clipboard;
+
+    【建议：什么时候可以不 import】
+      第 28 节那张「注入变量表」里的名字（FlxG Paths CoolUtil Conductor Options
+      Flags PlayState Character Note …）已经预置在脚本作用域里，不用 import。表
+      里没列到的才需要。
+
+    【注意：import 了却报「Module not found」】
+      说明这个类不在 hscript.Config 的 import 白名单（只有 flixel / funkin /
+      foxlite / modchart.）。sys.io.、openfl.desktop.* 这类就不在白名单里，写了
+      也解析不到。
+
+
+  ■ 关于本手册里的表格
+  ──────────────────
+
+    本手册有两类表，短长是故意的：
+
+    ［类型 ｜ 特点 ｜ 例子］
+      · 查表型 ｜ 一格一个事实，越短越好查；解释在表前的正文里 ｜ 快捷键、控制台
+        命令、import 清单
+      · 解释型 ｜ 每个字段都配「是什么 / 什么时候用 / 常见值」，宁可长 ｜ 设置项、
+        事件字段、谱面结构
+
+    如果你发现某张解释型的表只有干巴巴几个词（比如某张字段表每格只有 3~5 个字），
+    那就是该补的 —— 直接提 issue 指出「第几节哪张表」，我补成三段式。
+
+    【说明：我们的取舍】
+      把快捷键表写成散文，查起来更慢；把字段表写成清单，看不懂。所以两类分开写，
+      而不是所有表都塞满解释。
 
 
   ■ 想继续深入，按这个顺序看

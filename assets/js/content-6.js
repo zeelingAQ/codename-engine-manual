@@ -1,6 +1,4 @@
-/* ============================================================
-   第六部分 · 配与修
-   ============================================================ */
+/* 三档阅读数据 */
 (function () {
   if (!window.CNE) return;
 
@@ -23,10 +21,19 @@
       ],
       "simple": [
         {
-          "p": "你可以在**设置菜单里加自己的选项** —— 玩家改完会存进存档，下次进游戏还在。"
+          "p": "想让玩家在**设置菜单里看到你的选项**（开关、滑条、下拉），放一个 XML 就行：`mods/你的mod/data/config/options.xml`。"
         },
         {
-          "p": "做法：在 mod 里放一个 XML，文件名固定 `data/config/options/LIB_<你的mod名>.xml`，一个节点就是一个选项。"
+          "p": "**一个节点 = 一个选项**：`<checkbox name=\"开启特效\" id=\"mymod_fx\" />`。`id` 是存值用的键，必须唯一。"
+        },
+        {
+          "p": "**支持 7 种**：分隔线、开关、数字、选择、单选、滑条、子菜单。"
+        },
+        {
+          "p": "**怎么读**：`FlxG.save.data.mymod_fx` 就是玩家设置的布尔值。记得给默认值。"
+        },
+        {
+          "p": "**别忘前缀**：两个 mod 都用 `volume` 这种 id 会互相踩，统一加 `你的mod_`。"
         }
       ],
       "core": [
@@ -232,7 +239,16 @@
       ],
       "simple": [
         {
-          "p": "想让玩家给你的 mod 功能单独设个键（比如「切换 HUD」）？在 mod 里放一个 XML，就能在**设置 → 控制**里多出一整个分类。"
+          "p": "想让玩家给**你的功能**设一个键，放 `mods/你的mod/data/config/controls.xml`，设置 → 控制里会多出一整个分类。"
+        },
+        {
+          "p": "**结构**：`<category name=\"我的按键\">` 里放若干 `<control menuName=\"显示名\" saveName=\"唯一键\" />`。"
+        },
+        {
+          "p": "**读按键**：`ControlsUtil.getJustPressed(PlayerSettings.solo.controls, \"MYMOD_KEY\")`，还有 `getPressed` / `getJustReleased`。"
+        },
+        {
+          "p": "**`saveName` 发布后别改** —— 玩家改好的键位是按它存的，改名等于清空玩家设置。"
         }
       ],
       "core": [
@@ -485,10 +501,16 @@
       ],
       "simple": [
         {
-          "p": "**不用改源码**，就能把原版的某个界面（比如自由游玩）整个换成你自己写的脚本界面。"
+          "p": "**不用改源码就能把整个界面换掉**。比如把自由游玩换成你自己写的界面。"
         },
         {
-          "p": "做法：在 mod 的 `modpack.ini` 里写一行 `FreeplayState=\"我的界面名\"`。"
+          "p": "在 `modpack.ini` 里写：`[StateRedirects]` 下面 `FreeplayState=\"MyFreeplay\"`。右边写类名或脚本名。"
+        },
+        {
+          "p": "**原理**：引擎每次切界面都会查这张表，命中就改道。右边没有同名类时，会去加载 `data/states/MyFreeplay.hx`。"
+        },
+        {
+          "p": "**坑**：别指向自己（会死循环）；改完要重启；只想加东西不要用它，用状态脚本即可。"
         }
       ],
       "core": [
@@ -657,10 +679,19 @@
       ],
       "simple": [
         {
-          "p": "`Flags` 是**引擎级开关**：禁用编辑器、关掉警告页、改默认难度、改图标缩放……都在这。**共 195 个**。"
+          "p": "`Flags` 是**引擎级开关**：禁用编辑器、跳过警告页、改默认难度、改图标缩放…… 一共 195 个。"
         },
         {
-          "p": "改法：**新建**一个 `data/config/flags.ini`（引擎里本来没有这个文件，不存在就全用默认值），写 `键=值`，**重启游戏**生效。"
+          "p": "**文件默认不存在**，要改就自己建 `data/config/flags.ini`，写 `键=值`，然后**重启**。"
+        },
+        {
+          "p": "**mod 里用 `modpack.ini` 的 `[Flags]` 区**，只对这个 mod 生效。"
+        },
+        {
+          "p": "**改完必须重启**，因为 Flags 是启动时读一次的。"
+        },
+        {
+          "p": "常用：`DISABLE_EDITORS=true`（发布时关编辑器）、`DISABLE_WARNING_SCREEN=true`（跳警告页）、`DEFAULT_DIFFICULTY=\"hard\"`。"
         }
       ],
       "core": [
@@ -1908,30 +1939,30 @@
         {
           "table": {
             "head": [
-              "",
-              "Flags",
-              "Options"
+              "维度",
+              "Flags（引擎级开关）",
+              "Options（玩家设置）"
             ],
             "rows": [
               [
                 "谁改",
-                "mod 作者 / 发行方",
-                "玩家"
+                "由做 mod 的人在 ini 里写死，玩家看不到",
+                "由玩家在设置界面里改，随时生效"
               ],
               [
                 "改哪",
-                "ini 文件",
-                "设置界面"
+                "`data/config/flags.ini` 或 `modpack.ini` 的 `[Flags]`",
+                "游戏内 Settings 各页"
               ],
               [
                 "何时生效",
-                "启动时",
-                "即时"
+                "只在启动读一次，改完必须重启",
+                "改完立刻生效，离开设置页自动存"
               ],
               [
                 "典型",
-                "禁用编辑器、默认难度",
-                "下滚、音量、偏移"
+                "影响引擎行为，属于「发行配置」",
+                "影响玩家手感，属于「个人偏好」"
               ]
             ]
           }
@@ -1950,10 +1981,19 @@
       ],
       "simple": [
         {
-          "p": "给 exe 加参数就能**跳过菜单直接进歌、指定 mod、开详细日志**。做测试时非常省时间。"
+          "p": "给 exe 加参数能**跳过菜单直接进歌**，做测试非常省时间。"
         },
         {
-          "p": "用法：`CodenameEngine.exe -song bopeebo hard`"
+          "p": "**最有用的一条**：`CodenameEngine.exe -song bopeebo hard` —— 直接进这首歌。"
+        },
+        {
+          "p": "**其他常用**：`-mod 名字`（启动时加载某个 mod）、`-chart`（进谱面编辑器）、`-v`（详细日志）、`-modfolder 路径`（换 mods 目录）。"
+        },
+        {
+          "p": "**注意**：`-song` 后面的难度和变体是**可选**的，引擎看下一个词是不是以 `-` 开头来判断。"
+        },
+        {
+          "p": "**做快捷方式**：右键 exe → 发送到桌面 → 属性 → 目标末尾加参数。"
         }
       ],
       "core": [
@@ -2192,10 +2232,19 @@
       ],
       "simple": [
         {
-          "p": "出问题时**第一件事是看日志**，不是改代码。"
+          "p": "**出问题第一件事是看日志，不是改代码**。"
         },
         {
-          "p": "日志有三个地方能看到：游戏内控制台（`F2`）、启动时的终端窗口、以及崩溃时的全屏报错界面。"
+          "p": "**三个入口**：游戏内 `F2` 控制台、启动时的终端窗口、崩溃时的全屏报错界面。"
+        },
+        {
+          "p": "**看最后一条红色 ERROR** —— 那通常是根因，前面的是它的后果。日志里的「文件名:行号」是脚本自己的行号。"
+        },
+        {
+          "p": "**崩了会怎样**：引擎弹一个全屏界面，把出错的那个脚本**禁用**掉，然后给你 QUIT GAME / RESET MOD 两个按钮。点 RESET MOD 往往能进游戏继续排查。"
+        },
+        {
+          "p": "**排查顺序**：看最后一条 ERROR → 看行号 → 判断是语法/空对象/资源缺失 → 二分注释代码定位。"
         }
       ],
       "core": [
@@ -2239,33 +2288,39 @@
             "head": [
               "级别",
               "前缀/颜色",
-              "含义"
+              "含义",
+              "看到它该做什么"
             ],
             "rows": [
               [
                 "`TRACE`",
                 "脚本 `trace()` 的输出",
-                "普通调试信息"
+                "普通调试信息",
+                ""
               ],
               [
                 "`INFO`",
                 "蓝色",
-                "一般信息"
+                "一般信息",
+                ""
               ],
               [
                 "`WARNING`",
                 "黄色",
-                "能继续跑，但可能有问题"
+                "能继续跑，但可能有问题",
+                ""
               ],
               [
                 "`ERROR`",
                 "红色",
-                "出错了，功能可能失效"
+                "出错了，功能可能失效",
+                ""
               ],
               [
                 "`VERBOSE`",
                 "灰色",
-                "只有 `-v` 才显示（加载细节等）"
+                "只有 `-v` 才显示（加载细节等）",
+                ""
               ]
             ]
           }
@@ -2394,10 +2449,19 @@
       ],
       "simple": [
         {
-          "p": "FNF 引擎的瓶颈通常只有三个：**画得太多（绘制调用）**、**内存太满**、**每帧干了重活**。"
+          "p": "引擎掉帧通常只有三个原因：**画得太多（绘制调用）**、**内存太满**、**每帧干了重活**。"
         },
         {
-          "p": "先测量再优化：`F3` 看帧率/内存/绘制调用，别凭感觉。"
+          "p": "**先测再优化**：按 `F3` 看 FPS、内存、`totalDC`。DC 几百正常，上千就要查散图。"
+        },
+        {
+          "p": "**最立竿见影的三条**：关掉游戏内 shader（`Options.gameplayShaders=false`）、合并图集、别在 `update` 里 `new` 对象。"
+        },
+        {
+          "p": "**内存一直涨** = 泄漏：自建的 Sprite 没 `destroy()`、补间没取消、事件没解绑。"
+        },
+        {
+          "p": "**别过度优化**：先把功能做出来，卡了再查。没测量的优化都是猜。"
         }
       ],
       "core": [
@@ -2409,33 +2473,39 @@
             "head": [
               "指标",
               "在哪看",
-              "健康值"
+              "健康值",
+              "怎么用它判断"
             ],
             "rows": [
               [
                 "FPS",
                 "`F3` 第一行",
-                "稳定 60+（目标是你的帧率上限）"
+                "稳定 60+（目标是你的帧率上限）",
+                "低于你设的上限 = 有东西在拖后腿；忽高忽低 = 每帧有突发重活"
               ],
               [
                 "MEM",
                 "`F3` 第二行",
-                "几百 MB 内；持续上涨 = 泄漏"
+                "几百 MB 内；持续上涨 = 泄漏",
+                "绝对值大不一定坏；**每 60 帧都在涨**才是泄漏"
               ],
               [
                 "对象数",
                 "`F3` Flixel 区块",
-                "稳定；打歌中不该一直涨"
+                "稳定；打歌中不该一直涨",
+                "打歌中一直涨 = 有东西没销毁（长按/粒子最常见）"
               ],
               [
                 "绘制调用 `totalDC`",
                 "`F3` Stats 区块",
-                "越低越好，几百以内算健康"
+                "越低越好，几百以内算健康",
+                "几百正常，上千查散图；关掉 shader 后如果骤降，就是它的问题"
               ],
               [
                 "当前状态",
                 "`F3` Flixel 区块",
-                "确认没在跑多余的状态"
+                "确认没在跑多余的状态",
+                "出现你没预期的状态名 = 有脚本重复 switchState"
               ]
             ]
           }
@@ -2578,23 +2648,27 @@
           "table": {
             "head": [
               "帧率",
-              "每帧预算",
-              "适合"
+              "每帧总预算",
+              "你实际能花多少",
+              "适合什么场景"
             ],
             "rows": [
               [
                 "60",
                 "16.6 ms",
+                "约 10 ms 给逻辑与脚本、6 ms 给绘制；**绝大多数 mod 都该用这档**",
                 "绝大多数 mod"
               ],
               [
                 "120",
                 "8.3 ms",
+                "各 4 ms 左右；一旦加了全屏 shader 或多角色，很容易超",
                 "追求丝滑，开销要砍半"
               ],
               [
                 "240",
                 "4.2 ms",
+                "各 2 ms；只有「几乎无特效」的纯谱面才跑得稳",
                 "只适合几乎无特效的场景"
               ]
             ]
@@ -2697,7 +2771,19 @@
       ],
       "simple": [
         {
-          "p": "把日志里那句英文，拿到这张表里对一下，基本能知道是哪一类问题。"
+          "p": "把日志里那句英文拿到这一节对一下，基本能定位问题类型。"
+        },
+        {
+          "p": "**脚本类**：`Unknown identifier` = 名字拼错；`Cannot access field of null` = 对象还没建好（改到 `postCreate`）。"
+        },
+        {
+          "p": "**资源类**：`Could not find asset` = 路径/大小写错；黑屏没日志 = XML 少斜杠或 `&` 没转义。"
+        },
+        {
+          "p": "**配置类**：`An option node requires a name` = 设置项少了 `name`；`Compressed Library Detected` = mod 是 zip，编辑器写不了。"
+        },
+        {
+          "p": "**崩了但能 RESET MOD 进游戏** = 某个脚本的问题（崩的时候它已经被禁用）。"
         }
       ],
       "core": [
@@ -2938,10 +3024,16 @@
       ],
       "simple": [
         {
-          "p": "引擎的很多功能是**编译时决定**的，不是设置里能开的。比如「视频过场」「3D」「编辑器」，如果发布者编译时关掉了，你装多少 mod 都没用。"
+          "p": "**很多功能是编译时决定**的，不是设置能开的：视频过场、3D、modchart、编辑器。发布者编译时关掉了，你装多少 mod 都没用。"
         },
         {
-          "p": "下面这张表就是全部开关。看不懂没关系，记住一句：**换一个构建**比改代码快。"
+          "p": "**怎么判断自己这个构建有什么**：脚本里写 `#if MODCHARTING_FEATURES` 之类，打印一行就知道。"
+        },
+        {
+          "p": "**`STRIPPED_COMPILE`** 是「精简编译」总开关，会同时砍掉 modchart、3D、物理、自定义类。"
+        },
+        {
+          "p": "**结论**：缺功能先换构建，别去改代码 —— 编译期裁掉的东西运行时不存在。"
         }
       ],
       "core": [
@@ -3160,10 +3252,16 @@
       ],
       "simple": [
         {
-          "p": "同时装了几个 mod 时，**同名文件后加载的赢**；但**脚本不是覆盖，是叠加**（都会跑）。"
+          "p": "同时装了多个 mod 时：**同名文件后加载的赢**，但**脚本是叠加的**（都会跑）。"
         },
         {
-          "p": "想「一个文件里放多个 mod 各自的东西」，靠的就是 `LIB_` 这个前缀。"
+          "p": "**`LIB_` 是「一个位置多个 mod 各存一份」的机制**：比如状态脚本，每个 mod 各放一份 `data/states/PlayState.hx`，引擎按 mod 名去取。"
+        },
+        {
+          "p": "**歌单默认 `override`**：你的 mod 有歌就把原版的挤掉。想合并改成 `append`。"
+        },
+        {
+          "p": "**共存规矩**：别改公共文件（`bf.xml`）、设置项和按键加前缀、`static` 变量在 `destroy` 里清。"
         }
       ],
       "core": [
@@ -3487,7 +3585,16 @@
       ],
       "simple": [
         {
-          "p": "Discord 上显示的「正在玩 Codename Engine / 正在玩某首歌」，是 `data/discord.hx` 这个脚本控制的。改它就能改显示内容。"
+          "p": "Discord 上显示「正在玩 Codename Engine / 某首歌」是 `data/discord.hx` 控制的。"
+        },
+        {
+          "p": "**改它就能改显示内容**：`onPlayStateUpdate()` 里设置正在玩的歌，`onMenuLoaded(name)` 里设置菜单状态。"
+        },
+        {
+          "p": "**按钮也能改**：`onDiscordPresenceUpdate(e)` 里改 `e.presence.button1Label` 和 `button1Url`。"
+        },
+        {
+          "p": "**mod 可以有自己的 `data/discord.hx`**，整份替换。"
         }
       ],
       "core": [
@@ -3623,7 +3730,16 @@
       ],
       "simple": [
         {
-          "p": "最后一页：查快捷键、查术语、查链接。"
+          "p": "这一节是**速查**：快捷键、术语、链接、import 总表。"
+        },
+        {
+          "p": "**本站按键**：`1/2/3` 切档、`Ctrl+K` 搜索、`J/K` 上下章、`?` 面板、`M` 音乐、`7` 开发者模式。"
+        },
+        {
+          "p": "**引擎按键**：`F2` 控制台、`F3` 帧率、`F4` 检查器、`F5` 重载、`Shift+F5` 重载脚本。"
+        },
+        {
+          "p": "**最常用的链接**：官方 Wiki、GitHub 仓库、本页镜像。找不到答案就去 Wiki 搜英文关键词。"
         }
       ],
       "core": [
@@ -3888,6 +4004,366 @@
         },
         {
           "p": "制作：**一人制作**。如果这份东西帮你少走了几个小时的弯路，那就够了。"
+        },
+        {
+          "h": "import 总表：每个功能到底要 import 什么"
+        },
+        {
+          "p": "写外部脚本最常见的报错是「Unknown identifier」—— 十有八九是漏了 `import`。下面这张表按用途列全，**照着抄就行**。"
+        },
+        {
+          "h4": "引擎工具类"
+        },
+        {
+          "table": {
+            "head": [
+              "要用的东西",
+              "完整 import"
+            ],
+            "rows": [
+              [
+                "窗口 / 标题 / 图标",
+                "`import funkin.backend.utils.WindowUtils;`"
+              ],
+              [
+                "系统弹窗 / 原生控制台",
+                "`import funkin.backend.utils.NativeAPI;`"
+              ],
+              [
+                "通用工具（存档文件、动画名、坐标）",
+                "`import funkin.backend.utils.CoolUtil;`"
+              ],
+              [
+                "自定义按键读写",
+                "`import funkin.backend.utils.ControlsUtil;`"
+              ],
+              [
+                "zip 打包 / 解压",
+                "`import funkin.backend.utils.ZipUtil;`"
+              ],
+              [
+                "内存占用",
+                "`import funkin.backend.utils.MemoryUtil;`"
+              ],
+              [
+                "线程",
+                "`import funkin.backend.utils.ThreadUtil;`"
+              ],
+              [
+                "位图 / 截图相关",
+                "`import funkin.backend.utils.BitmapUtil;`"
+              ],
+              [
+                "XML 节点操作",
+                "`import funkin.backend.utils.XMLUtil;`"
+              ],
+              [
+                "ini 读写",
+                "`import funkin.backend.utils.IniUtil;`"
+              ],
+              [
+                "Markdown 渲染",
+                "`import funkin.backend.utils.MarkdownUtil;`"
+              ],
+              [
+                "引擎环境信息",
+                "`import funkin.backend.utils.EngineUtil;`"
+              ],
+              [
+                "多语言",
+                "`import funkin.backend.utils.TranslationUtil;`"
+              ],
+              [
+                "Discord 状态",
+                "`import funkin.backend.utils.DiscordUtil;`"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "资源 / mod"
+        },
+        {
+          "table": {
+            "head": [
+              "要用的东西",
+              "完整 import"
+            ],
+            "rows": [
+              [
+                "资源路径",
+                "`import funkin.backend.assets.Paths;`"
+              ],
+              [
+                "mod 列表 / 切换",
+                "`import funkin.backend.assets.ModsFolder;`"
+              ],
+              [
+                "自定义资源库",
+                "`import funkin.backend.assets.ModsFolderLibrary;`"
+              ],
+              [
+                "zip 形式的 mod",
+                "`import funkin.backend.assets.ZipFolderLibrary;`"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "打歌对象"
+        },
+        {
+          "table": {
+            "head": [
+              "要用的东西",
+              "完整 import"
+            ],
+            "rows": [
+              [
+                "PlayState",
+                "`import funkin.game.PlayState;`"
+              ],
+              [
+                "角色",
+                "`import funkin.game.Character;`"
+              ],
+              [
+                "舞台",
+                "`import funkin.game.Stage;`"
+              ],
+              [
+                "音符",
+                "`import funkin.game.Note;`"
+              ],
+              [
+                "接收器 / 轨道",
+                "`import funkin.game.Strum;` `import funkin.game.StrumLine;`"
+              ],
+              [
+                "血条图标",
+                "`import funkin.game.HealthIcon;`"
+              ],
+              [
+                "溅射",
+                "`import funkin.game.Splash;` `import funkin.game.SplashHandler;`"
+              ],
+              [
+                "游戏结束",
+                "`import funkin.game.GameOverSubstate;`"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "脚本系统"
+        },
+        {
+          "table": {
+            "head": [
+              "要用的东西",
+              "完整 import"
+            ],
+            "rows": [
+              [
+                "脚本对象",
+                "`import funkin.backend.scripting.Script;`"
+              ],
+              [
+                "脚本包",
+                "`import funkin.backend.scripting.ScriptPack;`"
+              ],
+              [
+                "事件管理器",
+                "`import funkin.backend.scripting.EventManager;`"
+              ],
+              [
+                "用脚本当状态",
+                "`import funkin.backend.scripting.ModState;`"
+              ],
+              [
+                "用脚本当子状态",
+                "`import funkin.backend.scripting.ModSubState;`"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "数据 / 系统"
+        },
+        {
+          "table": {
+            "head": [
+              "要用的东西",
+              "完整 import"
+            ],
+            "rows": [
+              [
+                "存档 / 最高分",
+                "`import funkin.savedata.FunkinSave;`"
+              ],
+              [
+                "设置字段",
+                "`import funkin.options.Options;`"
+              ],
+              [
+                "Flags 开关",
+                "`import funkin.backend.system.Flags;`"
+              ],
+              [
+                "节拍换算",
+                "`import funkin.backend.system.Conductor;`"
+              ],
+              [
+                "控制台命令",
+                "`import funkin.backend.system.console.ConsoleCommandManager;`"
+              ],
+              [
+                "谱面解析",
+                "`import funkin.backend.chart.Chart;`"
+              ],
+              [
+                "事件定义",
+                "`import funkin.backend.chart.EventsData;`"
+              ],
+              [
+                "着色器",
+                "`import funkin.backend.shaders.FunkinShader;`"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "事件对象（`e` 的类型）"
+        },
+        {
+          "table": {
+            "head": [
+              "事件",
+              "完整 import"
+            ],
+            "rows": [
+              [
+                "命中",
+                "`import funkin.backend.scripting.events.note.NoteHitEvent;`"
+              ],
+              [
+                "漏键",
+                "`import funkin.backend.scripting.events.note.NoteMissEvent;`"
+              ],
+              [
+                "音符更新",
+                "`import funkin.backend.scripting.events.note.NoteUpdateEvent;`"
+              ],
+              [
+                "溅射",
+                "`import funkin.backend.scripting.events.splash.SplashShowEvent;`"
+              ],
+              [
+                "状态切换 / 子状态",
+                "`import funkin.backend.scripting.events.state.StateEvent;`"
+              ],
+              [
+                "菜单切换",
+                "`import funkin.backend.scripting.events.menu.MenuChangeEvent;`"
+              ],
+              [
+                "窗口尺寸",
+                "`import funkin.backend.scripting.events.ResizeEvent;`"
+              ],
+              [
+                "Discord 状态",
+                "`import funkin.backend.scripting.events.discord.DiscordPresenceUpdateEvent;`"
+              ]
+            ]
+          }
+        },
+        {
+          "h4": "第三方 / 底层"
+        },
+        {
+          "table": {
+            "head": [
+              "要用的东西",
+              "完整 import"
+            ],
+            "rows": [
+              [
+                "modchart",
+                "`import modchart.Manager;`"
+              ],
+              [
+                "补间 / 缓动",
+                "`import flixel.tweens.FlxTween;` `import flixel.tweens.FlxEase;`"
+              ],
+              [
+                "定时器 / 颜色",
+                "`import flixel.util.FlxTimer;` `import flixel.util.FlxColor;`"
+              ],
+              [
+                "资源读取",
+                "`import openfl.utils.Assets;`"
+              ],
+              [
+                "窗口对象",
+                "`import openfl.Lib;`"
+              ],
+              [
+                "剪贴板",
+                "`import openfl.desktop.Clipboard;`"
+              ]
+            ]
+          }
+        },
+        {
+          "callout": {
+            "kind": "tip",
+            "title": "什么时候可以不 import",
+            "text": "第 28 节那张「注入变量表」里的名字（`FlxG` `Paths` `CoolUtil` `Conductor` `Options` `Flags` `PlayState` `Character` `Note` …）**已经预置在脚本作用域里**，不用 import。表里没列到的才需要。"
+          }
+        },
+        {
+          "callout": {
+            "kind": "warn",
+            "title": "import 了却报「Module not found」",
+            "text": "说明这个类**不在 `hscript.Config` 的 import 白名单**（只有 `flixel` / `funkin` / `foxlite` / `modchart.*`）。`sys.io.*`、`openfl.desktop.*` 这类就不在白名单里，写了也解析不到。"
+          }
+        },
+        {
+          "h": "关于本手册里的表格"
+        },
+        {
+          "p": "本手册有两类表，**短长是故意的**："
+        },
+        {
+          "table": {
+            "head": [
+              "类型",
+              "特点",
+              "例子"
+            ],
+            "rows": [
+              [
+                "**查表型**",
+                "一格一个事实，越短越好查；解释在表前的正文里",
+                "快捷键、控制台命令、import 清单"
+              ],
+              [
+                "**解释型**",
+                "每个字段都配「是什么 / 什么时候用 / 常见值」，宁可长",
+                "设置项、事件字段、谱面结构"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "如果你发现某张**解释型**的表只有干巴巴几个词（比如某张字段表每格只有 3~5 个字），那就是该补的 —— 直接提 issue 指出「第几节哪张表」，我补成三段式。"
+        },
+        {
+          "callout": {
+            "kind": "info",
+            "title": "我们的取舍",
+            "text": "把快捷键表写成散文，查起来更慢；把字段表写成清单，看不懂。所以**两类分开写**，而不是所有表都塞满解释。"
+          }
         }
       ],
       "deep": [

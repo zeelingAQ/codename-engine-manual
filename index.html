@@ -50,6 +50,7 @@
   <button class="iconbtn" id="btnBgm" title="背景音乐 开/关（M）" aria-label="背景音乐" aria-pressed="true">♪</button>
   <button class="iconbtn" id="btnSearch" title="搜索章节（Ctrl+K 或 /）" aria-label="搜索">⌕</button>
   <button class="iconbtn" id="btnKeys" title="快捷键一览（?）" aria-label="快捷键">?</button>
+  <button class="iconbtn" id="btnSettings" title="显示与阅读设置" aria-label="设置">⚙</button>
   <a class="topbar__wiki" href="https://codename-engine.com/wiki/" target="_blank" rel="noopener noreferrer">
     <span>官方 Wiki</span> ↗
   </a>
@@ -60,6 +61,21 @@
   <aside class="rail" id="rail" aria-label="章节导航"></aside>
 
   <main class="main">
+<div class="backupbar" role="note">
+  <span class="backupbar__txt">打不开或链接失效？</span>
+  <a href="https://github.com/zeelingAQ/codename-engine-manual" target="_blank" rel="noopener">GitHub 仓库</a>
+  <a href="https://zeelingaq.github.io/codename-engine-manual/" target="_blank" rel="noopener">GitHub Pages 镜像</a>
+  <a href="https://github.com/zeelingAQ/codename-engine-manual/archive/refs/heads/main.zip" target="_blank" rel="noopener">下载 ZIP</a>
+  <span class="backupbar__hint">（三条任选其一）</span>
+</div>
+
+<div class="miniToc" id="miniToc" aria-label="简版目录">
+  <button class="miniToc__btn" id="tocPrev" aria-label="上一节">‹</button>
+  <select id="tocSelect" aria-label="选择章节"></select>
+  <button class="miniToc__btn" id="tocNext" aria-label="下一节">›</button>
+</div>
+
+
     <!-- Hero -->
     <section class="hero">
       <div class="hero__kicker">FRIDAY NIGHT FUNKIN' ENGINE · 中文技术文档</div>
@@ -100,6 +116,18 @@
     </noscript>
 
     <!-- ============================ 页脚 ============================ -->
+    <section class="changelog" id="changelog">
+      <div class="changelog__head">
+        <h2>更新内容</h2>
+        <div class="changelog__pick">
+          <label for="verSelect">版本</label>
+          <select id="verSelect"></select>
+        </div>
+      </div>
+      <div class="changelog__banner" id="verBanner" hidden></div>
+      <div class="changelog__list" id="changeList"></div>
+    </section>
+
     <footer class="footer">
       <div class="footer__grid">
         <div class="footer__brand">
@@ -128,6 +156,58 @@
       </div>
     </footer>
   </main>
+
+  <div class="sheet" id="settingsSheet" aria-hidden="true">
+    <div class="sheet__panel" role="dialog" aria-label="显示与阅读设置">
+      <div class="sheet__head">
+        <b>显示与阅读设置</b>
+        <button class="iconbtn" id="settingsClose" aria-label="关闭">✕</button>
+      </div>
+
+      <div class="setrow">
+        <span>主题</span>
+        <div class="seg" id="themeSeg">
+          <button data-theme="dark" class="is-on">黑夜（护眼）</button>
+          <button data-theme="light">白天</button>
+        </div>
+      </div>
+
+      <div class="setrow">
+        <span>字号缩放</span>
+        <div class="seg">
+          <button id="zoomOut">A−</button>
+          <b id="zoomLabel">100%</b>
+          <button id="zoomIn">A＋</button>
+        </div>
+      </div>
+
+      <div class="setrow">
+        <span>因果线背景</span>
+        <div class="seg">
+          <button id="bgfxOff" class="is-on">关</button>
+          <button id="bgfxOn">开</button>
+        </div>
+      </div>
+
+      <div class="setrow">
+        <span>界面复杂度</span>
+        <div class="seg">
+          <button id="uiComplex" class="is-on">复杂（完整）</button>
+          <button id="uiSimple">简约（手机/平板）</button>
+        </div>
+      </div>
+
+      <div class="setrow">
+        <span>开发者模式</span>
+        <div class="seg">
+          <button id="devToggle">按 7 开关</button>
+          <b class="tag-dev">正在开发中</b>
+        </div>
+      </div>
+
+      <p class="setnote">设置会保存在本地浏览器。按 <kbd>7</kbd> 可快速开关开发者模式。</p>
+    </div>
+  </div>
 
   <audio id="bgm" src="assets/audio/bgm.mp3" loop preload="none" aria-hidden="true"></audio>
 
@@ -229,6 +309,7 @@
 <script src="assets/js/content-4.js"></script>
 <script src="assets/js/content-5.js"></script>
 <script src="assets/js/content-6.js"></script>
+  <script src="assets/js/ui-extras.js"></script>
 <canvas id="causal-fx" aria-hidden="true"></canvas>
 </body>
 </html>
